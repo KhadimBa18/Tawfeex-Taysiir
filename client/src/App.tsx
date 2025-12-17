@@ -15,7 +15,9 @@ import Stats from "@/pages/stats";
 import Personnel from "@/pages/personnel";
 import Settings from "@/pages/settings";
 import Layout from "@/components/layout";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 // Placeholder pages
 const Placeholder = ({ title }: { title: string }) => (
@@ -24,6 +26,33 @@ const Placeholder = ({ title }: { title: string }) => (
     <p className="text-muted-foreground mt-2">Module en cours de développement...</p>
   </div>
 );
+
+function InstallPrompt() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+  }, []);
+
+  if (!deferredPrompt) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+      <Button 
+        onClick={() => {
+          deferredPrompt.prompt();
+          setDeferredPrompt(null);
+        }}
+        className="shadow-lg gap-2"
+      >
+        <Download className="w-4 h-4" /> Installer l'Application
+      </Button>
+    </div>
+  );
+}
 
 function ProtectedRoute({ component: Component, ...rest }: any) {
   const { user, isLoading } = useAuth();
@@ -43,6 +72,7 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
   return (
     <Layout>
       <Component {...rest} />
+      <InstallPrompt />
     </Layout>
   );
 }

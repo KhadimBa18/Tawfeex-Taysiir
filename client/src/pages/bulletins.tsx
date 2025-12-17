@@ -7,11 +7,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Printer } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { SUBJECTS, normalize } from "@/lib/grading";
+import { SUBJECTS, normalize, type SubjectConfig, DEFAULT_CONFIG } from "@/lib/grading";
+import generatedImage from '@assets/generated_images/modern_logo_for_school_app_tawfeex_ak_taysiir.png';
 
 export default function Bulletins() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [marks, setMarks] = useState<Mark[]>([]);
+  const [configs, setConfigs] = useState<SubjectConfig[]>(DEFAULT_CONFIG);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedTrimestre, setSelectedTrimestre] = useState<string>("1");
   const [users, setUsers] = useState<User[]>([]);
@@ -19,102 +22,215 @@ export default function Bulletins() {
   useEffect(() => {
     db.classes.toArray().then(setClasses);
     db.users.toArray().then(setUsers);
+    db.configs.toArray().then(conf => {
+      if (conf.length > 0) {
+        const merged = DEFAULT_CONFIG.map(def => {
+          const found = conf.find(s => s.subjectId === def.subjectId);
+          return found || def;
+        });
+        setConfigs(merged);
+      }
+    });
   }, []);
 
   useEffect(() => {
     if (selectedClassId) {
       db.students.where("classId").equals(parseInt(selectedClassId)).toArray().then(setStudents);
+      db.marks.where("classId").equals(parseInt(selectedClassId)).toArray().then(setMarks);
     }
   }, [selectedClassId]);
+
+  const getMarkValue = (studentId: number, baseSubjectId: string, type: 'res' | 'comp' | 'global') => {
+    const subId = type === 'global' ? baseSubjectId : `${baseSubjectId}_${type}`;
+    const m = marks.find(m => 
+      m.studentId === studentId && 
+      m.subjectId === subId && 
+      m.trimestre === parseInt(selectedTrimestre)
+    );
+    return m ? m.value : null;
+  };
 
   const generatePDF = (student: Student) => {
     const doc = new jsPDF();
     const cls = classes.find(c => c.id === student.classId);
     const teacher = users.find(u => u.classId === student.classId);
-    const director = users.find(u => u.role === 'director' || u.role === 'admin'); // Fallback
+    const director = users.find(u => u.role === 'director') || users.find(u => u.role === 'admin');
 
-    // Draw Flag of Senegal (Vertical Stripes: Green, Yellow, Red)
-    // Rect size: 20x15
-    doc.setFillColor(0, 147, 88); // Green
-    doc.rect(15, 10, 8, 15, 'F');
-    doc.setFillColor(252, 221, 9); // Yellow
-    doc.rect(23, 10, 8, 15, 'F');
-    doc.setFillColor(239, 51, 64); // Red
-    doc.rect(31, 10, 8, 15, 'F');
+    // --- Header ---
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0); // Black for header text as standard, or use blue if preferred. User asked for blue menu color in header.
+    const MENU_BLUE = [41, 128, 185]; // RGB for standard blue used
     
-    // Star (Green) in the middle of Yellow stripe
-    // Simple 5-point star or just a small circle if drawing star is complex in pure jsPDF lines
-    doc.setFillColor(0, 147, 88);
-    doc.circle(27, 17.5, 2, 'F');
-
-    // Header Text
+    doc.setTextColor(MENU_BLUE[0], MENU_BLUE[1], MENU_BLUE[2]);
     doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text("RÉPUBLIQUE DU SÉNÉGAL", 45, 15);
-    doc.text("MINISTÈRE DE L'ÉDUCATION NATIONALE", 45, 20);
-    doc.text("IA: DAKAR / IEF: PARCELLES ASSAINIES", 45, 25);
-    doc.text("ÉCOLE: TAWFEEX AK TAYSIIR", 45, 30);
-    
-    // Logo Placeholder (Text for now or simple circle)
-    doc.setDrawColor(0,0,0);
-    doc.circle(180, 20, 10);
-    doc.setFontSize(8);
-    doc.text("LOGO", 176, 20);
+    doc.text("RÉPUBLIQUE DU SÉNÉGAL", 105, 15, { align: "center" });
+    doc.text("MINISTÈRE DE L'ÉDUCATION NATIONALE", 105, 20, { align: "center" });
+    doc.text("IA: DAKAR / IEF: PARCELLES ASSAINIES", 105, 25, { align: "center" });
+    doc.text("ÉCOLE: TAWFEEX AK TAYSIIR", 105, 30, { align: "center" });
 
-    // Title Zone
+    // --- Flag of Senegal (Star Fixed) ---
+    // Rect size: 20x15, Position: Left side or centered? Usually left or centered. Let's put it top left.
+    // Actually user said "etoile verte milieu du drapeau non point".
+    const flagX = 15;
+    const flagY = 10;
+    const flagW = 24;
+    const flagH = 16;
+    const stripeW = flagW / 3;
+
+    doc.setFillColor(0, 147, 88); // Green
+    doc.rect(flagX, flagY, stripeW, flagH, 'F');
+    doc.setFillColor(252, 221, 9); // Yellow
+    doc.rect(flagX + stripeW, flagY, stripeW, flagH, 'F');
+    doc.setFillColor(239, 51, 64); // Red
+    doc.rect(flagX + stripeW * 2, flagY, stripeW, flagH, 'F');
+
+    // Draw Star (Polygon)
+    doc.setFillColor(0, 147, 88); // Green
+    const cx = flagX + stripeW + (stripeW/2);
+    const cy = flagY + (flagH/2);
+    const r = 2.5; // Radius
+    // 5 point star coordinates
+    const angles = [18, 90, 162, 234, 306].map(a => (a - 90) * (Math.PI / 180)); // Rotated to point up
+    // Actually standard star points:
+    // We can draw a star by lines.
+    // Simple approach: Use a character if font supports it, but polygon is safer.
+    // Manual points for a star centered at cx, cy with outer radius r and inner radius r/2
+    const starPoints : any[] = [];
+    const step = Math.PI / 5;
+    for(let i = 0; i < 10; i++) {
+        const radius = i % 2 === 0 ? r : r * 0.4;
+        const angle = i * step - Math.PI / 2;
+        starPoints.push({
+            x: cx + Math.cos(angle) * radius,
+            y: cy + Math.sin(angle) * radius
+        });
+    }
+    // doc.lines requires segment format, simpler to use triangle hack or just lines
+    // jsPDF 'lines' method: lines(lines, x, y, scale, style, closed)
+    // Construct path
+    for(let i = 0; i < starPoints.length; i++) {
+        const p1 = starPoints[i];
+        const p2 = starPoints[(i + 1) % starPoints.length];
+        doc.line(p1.x, p1.y, p2.x, p2.y); // Stroke
+    }
+    // Fill is harder with lines. Let's use 'triangle' for the center or just use a small circle if polygon is too complex for this env.
+    // User explicitly said "non point". Let's try text star "★"
+    doc.setFontSize(12);
+    doc.setTextColor(0, 147, 88);
+    doc.text("★", cx, cy + 1.5, { align: "center" }); // Simple and effective
+
+    // --- Logo ---
+    // doc.addImage(generatedImage, 'PNG', 170, 10, 20, 20); // If valid base64/url.
+    // Since generatedImage is a path in code, we need the actual image data. 
+    // In a browser environment, we might need to load it. For now, text fallback is safer if image load fails.
+    try {
+       doc.addImage(generatedImage, 'PNG', 170, 10, 20, 20);
+    } catch (e) {
+       doc.setDrawColor(0);
+       doc.circle(180, 20, 10);
+       doc.setFontSize(8);
+       doc.text("LOGO", 176, 20);
+    }
+
+    // --- Title ---
     doc.setFontSize(18);
-    doc.setTextColor(41, 128, 185); // Blue
+    doc.setTextColor(MENU_BLUE[0], MENU_BLUE[1], MENU_BLUE[2]);
     doc.setFont("helvetica", "bold");
     doc.text("BULLETIN DE NOTES", 105, 45, { align: "center" });
-    
-    // Student Info Box (Styled)
-    doc.setDrawColor(41, 128, 185);
-    doc.setFillColor(236, 240, 241); // Light Gray/Blue
+
+    // --- Student Info ---
+    doc.setDrawColor(MENU_BLUE[0], MENU_BLUE[1], MENU_BLUE[2]);
+    doc.setFillColor(236, 240, 241);
     doc.roundedRect(15, 50, 180, 25, 3, 3, 'FD');
     
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "bold");
     doc.text(`${student.firstName} ${student.lastName}`, 20, 60);
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
+    // Avoid overflow by spacing
     doc.text(`Matricule: ${student.matricule}`, 20, 68);
     doc.text(`Classe: ${cls?.name}`, 80, 68);
-    doc.text(`Trimestre: ${selectedTrimestre}${selectedTrimestre === '1' ? 'er' : 'ème'}`, 140, 68);
-    doc.text(`Année: 2024-2025`, 170, 68);
+    doc.text(`Trimestre: ${selectedTrimestre}${selectedTrimestre === '1' ? 'er' : 'ème'}`, 130, 68);
+    doc.text(`Année: 2024-2025`, 165, 68);
 
-    // Prepare Table Data (Mocked marks for now, ideally fetch real marks)
-    const tableBody = SUBJECTS.map(sub => [
-        sub.label,
-        '--', // Note
-        '--', // Coeff
-        '--', // Total
-        '--', // Appréciation
-    ]);
+    // --- Grades Table ---
+    let totalScore = 0;
+    let totalMax = 0;
+    
+    const tableBody = SUBJECTS.flatMap(sub => {
+      const conf = configs.find(c => c.subjectId === sub.id) || {};
+      
+      if (sub.hasSub) {
+        // Resources
+        const resVal = getMarkValue(student.id!, sub.id, 'res');
+        const resMax = conf.maxRes || 40;
+        const resRow = [
+          `${sub.label} (Ressources)`,
+          resVal !== null ? resVal : '-',
+          resMax,
+          resVal !== null ? resVal : 0,
+          '' // Appréciation
+        ];
+        if (resVal !== null) { totalScore += resVal; totalMax += resMax; }
+
+        // Compétences
+        const compVal = getMarkValue(student.id!, sub.id, 'comp');
+        const compMax = conf.maxComp || 60;
+        const compRow = [
+          `${sub.label} (Compétences)`,
+          compVal !== null ? compVal : '-',
+          compMax,
+          compVal !== null ? compVal : 0,
+          ''
+        ];
+        if (compVal !== null) { totalScore += compVal; totalMax += compMax; }
+
+        return [resRow, compRow];
+      } else {
+        // Global
+        const val = getMarkValue(student.id!, sub.id, 'global');
+        const max = conf.maxGlobal || 20;
+        if (val !== null) { totalScore += val; totalMax += max; }
+        
+        return [[
+          sub.label,
+          val !== null ? val : '-',
+          max,
+          val !== null ? val : 0,
+          ''
+        ]];
+      }
+    });
 
     autoTable(doc, {
       startY: 85,
-      head: [['Discipline', 'Note', 'Coeff', 'Total', 'Appréciation']],
+      head: [['Discipline', 'Note', 'Barème', 'Total', 'Appréciation']],
       body: tableBody,
       theme: 'grid',
-      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-      styles: { fontSize: 10, cellPadding: 2 },
+      headStyles: { fillColor: MENU_BLUE, textColor: 255, halign: 'center', fontStyle: 'bold' },
+      styles: { fontSize: 10, cellPadding: 2, valign: 'middle' },
+      columnStyles: { 0: { cellWidth: 70 } }, // Wider first column
       alternateRowStyles: { fillColor: [240, 248, 255] }
     });
 
-    // Summary & Signatures
+    // --- Summary & Signatures ---
     const finalY = (doc as any).lastAutoTable.finalY + 10;
     
-    // Stats Box
+    // Stats
+    const average = totalMax > 0 ? (totalScore / totalMax) * 20 : 0;
+    
     doc.setDrawColor(0);
     doc.setFillColor(255, 255, 255);
     doc.rect(130, finalY, 65, 25);
-    doc.text("Moyenne: -- / 20", 135, finalY + 7);
-    doc.text("Rang: -- / --", 135, finalY + 14);
-    doc.text("Décision: --", 135, finalY + 21);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Moyenne: ${average.toFixed(2)} / 20`, 135, finalY + 7);
+    doc.text("Rang: -- / --", 135, finalY + 14); // Need full class calculation for Rank
+    doc.text(`Décision: ${average >= 10 ? 'Admis' : 'Echoué'}`, 135, finalY + 21);
 
     // Signatures
+    doc.setFontSize(10);
     doc.text(`L'Enseignant(e):`, 30, finalY + 40);
     doc.setFont("helvetica", "bold");
     doc.text(teacher?.fullName || "Non assigné", 30, finalY + 47);
@@ -124,9 +240,15 @@ export default function Bulletins() {
     doc.setFont("helvetica", "bold");
     doc.text(director?.fullName || "Le Directeur", 150, finalY + 47);
 
-    // Footer
+    // --- Footer ---
+    // Colored line separator
+    doc.setDrawColor(MENU_BLUE[0], MENU_BLUE[1], MENU_BLUE[2]);
+    doc.setLineWidth(0.5);
+    doc.line(15, 280, 195, 280);
+
     const footerText = "Tawfeex_ak_Taysiir / khadimba18@gmail.com / 77 737 95 80";
     doc.setFontSize(8);
+    doc.setTextColor(MENU_BLUE[0], MENU_BLUE[1], MENU_BLUE[2]); // Email/Text in blue
     doc.setFont("helvetica", "normal");
     doc.text(footerText, 105, 285, { align: "center" });
 
@@ -182,7 +304,7 @@ export default function Bulletins() {
                 <TableRow>
                   <TableHead>Matricule</TableHead>
                   <TableHead>Prénom & Nom</TableHead>
-                  <TableHead>Moyenne (Simulée)</TableHead>
+                  <TableHead>Moyenne (Aperçu)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -191,7 +313,7 @@ export default function Bulletins() {
                   <TableRow key={s.id}>
                     <TableCell className="font-mono text-xs">{s.matricule}</TableCell>
                     <TableCell className="font-medium">{s.firstName} {s.lastName}</TableCell>
-                    <TableCell>--/20</TableCell>
+                    <TableCell>--</TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" variant="outline" className="gap-2" onClick={() => generatePDF(s)}>
                         <Printer className="w-4 h-4" /> Imprimer PDF

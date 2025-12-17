@@ -272,6 +272,7 @@ export default function Personnel() {
                       <SelectItem value="admin">Administrateur</SelectItem>
                       <SelectItem value="director">Directeur</SelectItem>
                       <SelectItem value="teacher">Enseignant</SelectItem>
+                      <SelectItem value="teacher">Enseignante</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -329,7 +330,7 @@ export default function Personnel() {
                 <TableRow key={u.id}>
                   <TableCell className="font-mono text-xs">{u.matricule || '-'}</TableCell>
                   <TableCell className="font-medium">{u.fullName}</TableCell>
-                  <TableCell className="capitalize">{u.role}</TableCell>
+                  <TableCell className="capitalize">{u.role === 'teacher' ? 'Enseignant(e)' : u.role}</TableCell>
                   <TableCell>{classes.find(c => c.id === u.classId)?.name || '-'}</TableCell>
                   <TableCell>{u.tel || '-'}</TableCell>
                   <TableCell className="text-right">

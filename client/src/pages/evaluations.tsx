@@ -82,6 +82,21 @@ export default function Evaluations() {
 
   const handleMarkChange = (studentId: number, type: 'res' | 'comp' | 'global', value: string) => {
     const numValue = parseFloat(value);
+    
+    // VALIDATION: Check max score
+    const currentSub = SUBJECTS.find(s => s.id === selectedSubjectId);
+    const conf = configs.find(c => c.subjectId === selectedSubjectId) || {};
+    let max = 20; // fallback
+    if (currentSub?.hasSub) {
+        max = type === 'res' ? (conf.maxRes || 40) : (conf.maxComp || 60);
+    } else {
+        max = conf.maxGlobal || 20;
+    }
+
+    if (!isNaN(numValue) && numValue > max) {
+        toast({ title: "Erreur", description: `La note ne peut pas dépasser ${max}`, variant: "destructive" });
+        return;
+    }
     if (isNaN(numValue) && value !== "") return; 
 
     const newMark = {
@@ -139,6 +154,13 @@ export default function Evaluations() {
     });
 
     const ws = XLSX.utils.json_to_sheet(data);
+    
+    // Attempt Data Validation (Limited in SheetJS Free)
+    // We can add comments or specific formatting, but strict Data Validation 
+    // requires Pro version or complex XML manipulation.
+    // However, we can set cell type to 'n' (number).
+    // Let's rely on robust IMPORT validation.
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Notes");
     XLSX.writeFile(wb, `Notes_${cls?.name}_T${selectedTrimestre}.xlsx`);
@@ -156,85 +178,92 @@ export default function Evaluations() {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(ws) as any[];
 
-        let imported = 0;
-        for (const row of data) {
-           const student = students.find(s => s.matricule === row.Matricule);
-           if (student) {
-             // Iterate all subjects
-             SUBJECTS.forEach(sub => {
-                 if (sub.hasSub) {
-                    const res = row[`${sub.label} (Res)`];
-                    const comp = row[`${sub.label} (Comp)`];
-                    if (res !== undefined) handleMarkChange(student.id!, 'res', res); // This is suboptimal as it relies on selectedSubjectId in handleMarkChange if we don't pass subjId.
-                    // Wait, handleMarkChange uses selectedSubjectId state!
-                    // I need to update logic to support direct subjectId
-                 }
-             });
-             // Actually, refactoring handleMarkChange is needed for full import support.
-             // For now, let's just do single subject import or fix handleMarkChange.
-             // Fix handleMarkChange below:
-           }
-        }
-        
-        // RE-IMPLEMENTING IMPORT LOGIC to support all subjects
-        // Need to bypass handleMarkChange to avoid state issues or update it
         const newMarks: Mark[] = [];
-        data.forEach(row => {
+        let errorCount = 0;
+
+        for(const row of data) {
             const student = students.find(s => s.matricule === row.Matricule);
             if (student) {
-                SUBJECTS.forEach(sub => {
+                for(const sub of SUBJECTS) {
+                    const conf = configs.find(c => c.subjectId === sub.id) || {};
+
                     if (sub.hasSub) {
                         const res = row[`${sub.label} (Res)`];
                         const comp = row[`${sub.label} (Comp)`];
-                        if (res !== undefined) newMarks.push({
-                            studentId: student.id!,
-                            classId: parseInt(selectedClassId),
-                            subjectId: `${sub.id}_res`,
-                            trimestre: parseInt(selectedTrimestre) as 1|2|3,
-                            value: parseFloat(res)
-                        });
-                        if (comp !== undefined) newMarks.push({
-                            studentId: student.id!,
-                            classId: parseInt(selectedClassId),
-                            subjectId: `${sub.id}_comp`,
-                            trimestre: parseInt(selectedTrimestre) as 1|2|3,
-                            value: parseFloat(comp)
-                        });
+                        
+                        if (res !== undefined) {
+                            const val = parseFloat(res);
+                            const max = conf.maxRes || 40;
+                            if (isNaN(val) || val > max) { errorCount++; } 
+                            else {
+                                newMarks.push({
+                                    studentId: student.id!,
+                                    classId: parseInt(selectedClassId),
+                                    subjectId: `${sub.id}_res`,
+                                    trimestre: parseInt(selectedTrimestre) as 1|2|3,
+                                    value: val
+                                });
+                            }
+                        }
+                        if (comp !== undefined) {
+                            const val = parseFloat(comp);
+                            const max = conf.maxComp || 60;
+                            if (isNaN(val) || val > max) { errorCount++; }
+                            else {
+                                newMarks.push({
+                                    studentId: student.id!,
+                                    classId: parseInt(selectedClassId),
+                                    subjectId: `${sub.id}_comp`,
+                                    trimestre: parseInt(selectedTrimestre) as 1|2|3,
+                                    value: val
+                                });
+                            }
+                        }
                     } else {
-                        const val = row[`${sub.label}`];
-                        if (val !== undefined) newMarks.push({
-                            studentId: student.id!,
-                            classId: parseInt(selectedClassId),
-                            subjectId: sub.id,
-                            trimestre: parseInt(selectedTrimestre) as 1|2|3,
-                            value: parseFloat(val)
-                        });
+                        const valRaw = row[`${sub.label}`];
+                        if (valRaw !== undefined) {
+                            const val = parseFloat(valRaw);
+                            const max = conf.maxGlobal || 20;
+                            if (isNaN(val) || val > max) { errorCount++; }
+                            else {
+                                newMarks.push({
+                                    studentId: student.id!,
+                                    classId: parseInt(selectedClassId),
+                                    subjectId: sub.id,
+                                    trimestre: parseInt(selectedTrimestre) as 1|2|3,
+                                    value: val
+                                });
+                            }
+                        }
                     }
-                });
+                }
             }
-        });
+        }
 
         if (newMarks.length > 0) {
             await db.transaction('rw', db.marks, async () => {
                 for (const m of newMarks) {
-                   // We need to match existing to update, or simple put
-                   // Dexie put will replace if key exists, but our key is [studentId+subjectId+trimestre]
-                   // Ensure that index is valid.
-                   // The schema is: marks: '++id, [studentId+subjectId+trimestre], classId'
-                   // So we need to find the ID first if we want to update properly or let Dexie handle compound index?
-                   // Dexie `put` with compound index constraint should work if defined as unique? 
-                   // Actually `++id` is primary. So we need to query first.
-                   const existing = await db.marks.where({studentId: m.studentId, subjectId: m.subjectId, trimestre: m.trimestre}).first();
+                   const existing = await db.marks.where({
+                       studentId: m.studentId, 
+                       subjectId: m.subjectId, 
+                       trimestre: m.trimestre
+                   }).first();
+                   
                    if (existing) m.id = existing.id;
                    await db.marks.put(m);
                 }
             });
-            toast({ title: "Import terminé", description: `Notes mises à jour.` });
             loadMarks();
+            if (errorCount > 0) {
+                toast({ title: "Import partiel", description: `${newMarks.length} notes importées. ${errorCount} erreurs (valeur invalide ou > barème).`, variant: "warning" });
+            } else {
+                toast({ title: "Import terminé", description: `Toutes les notes ont été importées.` });
+            }
+        } else {
+            toast({ title: "Aucune note", description: "Aucune note valide trouvée.", variant: "destructive" });
         }
 
       } catch (e) {
-        console.error(e);
         toast({ title: "Erreur", description: "Fichier invalide", variant: "destructive" });
       }
     };
