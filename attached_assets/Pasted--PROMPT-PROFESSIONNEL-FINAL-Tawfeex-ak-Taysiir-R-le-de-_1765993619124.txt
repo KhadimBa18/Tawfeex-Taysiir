@@ -1,0 +1,109 @@
+
+✅ PROMPT PROFESSIONNEL FINAL – Tawfeex_ak_Taysiir
+Rôle de l’IA
+Agis comme un ingénieur logiciel senior, architecte full-stack et techno-pédagogue, spécialiste des applications scolaires offline-first, adaptées aux enseignants non techniciens et aux réalités du système éducatif sénégalais.
+Objectif
+Concevoir une application scolaire moderne, sécurisée et 100 % fonctionnelle hors ligne, nommée Tawfeex_ak_Taysiir, dédiée à la gestion complète des évaluations d’une école élémentaire.
+Exigences essentielles
+Identité visuelle
+    • Le logo officiel “Tawfeex_ak_Taysiir” doit apparaître :
+        ◦ sur toutes les pages,
+        ◦ dans tous les modules,
+        ◦ sur tous les documents PDF imprimables.
+Architecture & Sécurité
+    • Application PWA ou Desktop/Web hybride
+    • Approche offline-first
+    • Base locale : SQLite / IndexedDB
+    • Sauvegarde & restauration locales
+    • Authentification sécurisée (hashage)
+    • Rôles : Admin / Directeur / Enseignant
+    • Déconnexion sécurisée
+Interface utilisateur
+    • Design moderne, professionnel et responsive
+    • Navigation par icônes colorées intuitives
+Boutons obligatoires (icônes)
+Modifier Supprimer | Enregistrer | Annuler Accueil |  Retour |  Télécharger |   Imprimer
+Configuration initiale (1ère ouverture)
+    • Utilisateur (défaut : KHADIM BA)
+    • Login : Tawfeex | Mot de passe : Taysiir
+    • IA , IEF,  École · Email · Téléphone
+    • Photo de profil obligatoire
+Message affiché en haut dans chaque module :
+Bienvenue dans Tawfeex_ak_Taysiir – Assistance : KHADIM BA (77 737 95 80)
+Modules fonctionnels
+1. Personnel
+    • Directeur / Directrice / Enseignant(e) / Autre
+    • Affectation aux classes
+    • Gestion sécurisée
+2. Classes
+    • CI à CM2 (+ variantes A/B), Arabe, Autre
+    • Configuration automatique selon nombre de cours
+    • Disciplines et barèmes propres à chaque classe
+    • fichier excel à importer et à exporter : fichier élève (par exemple : élèves_CI ; élèves_CP ;……. ,) contenant (prénoms, nom, sexe,  date et lieu de naissance (facultatif).
+      Nb : les matricules seront générés directement (KB_0000) après la validation  des informations exportées .
+    • fichier excel (à importer et à exporter : fichier notes (par exemple : notes_CI ; notes_CP ;……. ), contenant (prénoms, nom, disciplines à composer)
+
+3. Élèves
+3.a .Champs :
+    • Prénom(s), Nom, Sexe (M/F)
+    • Date & lieu de naissance (facultatifs)
+    • Classe, Matricule auto-généré
+3.b .Fonctionnalités :
+    • Recherche, tri, détection de doublons
+    • Carte scolaire PDF
+    • Importation massive prioritaire via Excel
+
+B. Disciplines & notes (par élève)
+Les disciplines obligatoires dans les bulletins sont :
+    • Français
+        ◦ Ressources (sous-disciplines 1 à 7)
+        ◦ Compétences (sous-disciplines 1 à 7)
+    • Mathématiques
+        ◦ Ressources (1 à 7)
+        ◦ Compétences (1 à 7)
+    • Découverte du monde
+        ◦ Ressources (1 à 7)
+        ◦ Compétences (1 à 7)
+    • Éducation au développement durable
+        ◦ Ressources (1 à 7)
+        ◦ Compétences (1 à 7)
+    • Art plastique
+    • Éducation musicale
+    • Arabe
+Pour toute discipline avec (Ressources / Compétences) :
+      Français ressources= SD1+SD2+…….+SD7
+      Français compétences= SD1+SD2+…….+SD7
+      ………………………………………………..
+    • Les sous-disciplines n’apparaissent pas dans le bulletin, uniquement la note globale.
+Assistant d’importation Excel (obligatoire)
+    1. 🔍 Vérification automatique des données
+    2. ✏️ Correction des erreurs de saisie
+    3. ✅ Validation finale
+➡️ Après validation, toutes les données sont intégrées sans saisie manuelle.
+Évaluations & Notation
+    • 1er, 2ᵉ et 3ᵉ trimestre
+    • Barèmes non uniformes, configurables par :
+        ◦ classe · discipline · trimestre
+    • Saisie dans le barème réel → normalisation automatique /100
+    • Calcul automatique : moyennes, rangs, statistiques
+Bulletins PDF modernes avec des zones de texte colorie et stylé
+    • En-tête : IA,  IEF , École, Elève, classe  Logo Tawfee_ak_Taysiir 
+    • Tableau : Discipline | Note | Observation automatique
+    • Bas : totaux, moyennes, rang, signatures (Ensegnant(e), Directeur ou Directrice)
+    • Pied de page : nom de l’école + khadimba18@gmail.com/ 777379580 (obligatoire)
+    • Date & heure d’impression automatiques juste avant le pied de page
+    • 3ᵉ trimestre : moyenne générale + décision (Admis / Redouble)
+    • Optimisés pour impression externe
+Statistiques & Graphiques
+    • Effectifs (G/F/Total), réussite, moyennes
+    • Analyses pédagogiques automatiques 
+    • Tableau de synthèse par discipline, classe,école (ont composé, ont la moyenne, taux de réussite)
+    • Graphiques , histogramme, courbes, modernes par classe, discipline et école téléchargeable pour des besoins de partage avec l’équipe pédagogique et la communauté) pdf, png, ppt.
+ Mode hors ligne (PRIORITAIRE)
+    • Fonctionnement 100 % sans Internet
+    • Synchronisation optionnelle
+    • Partage possible entre écoles isolées
+Résultat attendu
+Un logiciel clé en main, intuitif, automatisé et pédagogique, adapté aux réalités du système éducatif sénégalais, nommé Tawfeex_ak_Taysiir.
+⚠️ Contrainte majeure :
+L’utilisateur final n’a aucune connaissance informatique → tout doit être simple, guidé et automatisé.
