@@ -6,14 +6,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search, Download, Upload, FileUp, IdCard, FileText, FileSpreadsheet, FileType } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, FileUp, IdCard, FileText, FileSpreadsheet, FileType } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from 'xlsx';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { saveAs } from 'file-saver';
-import { Document, Packer, Paragraph, Table as DocTable, TableRow as DocTableRow, TableCell as DocTableCell, WidthType } from "docx";
-import generatedImage from '@assets/generated_images/modern_logo_for_school_app_tawfeex_ak_taysiir.png';
+import { Document, Packer, Paragraph, Table as DocTable, TableRow as DocTableRow, TableCell as DocTableCell, WidthType, Footer, TextRun, AlignmentType } from "docx";
 
 export default function Students() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -50,7 +49,6 @@ export default function Students() {
       return;
     }
 
-    // Duplicate Check
     const duplicate = students.find(s => 
       s.firstName.toLowerCase() === newStudent.firstName?.toLowerCase() &&
       s.lastName.toLowerCase() === newStudent.lastName?.toLowerCase() &&
@@ -108,28 +106,20 @@ export default function Students() {
         let skipped = 0;
 
         for (const row of data) {
-          // Expected columns: Prénom, Nom, Sexe, DateNaissance, LieuNaissance, Classe
           if (row.Prénom && row.Nom) {
-            // Find class ID
             let classId = 0;
             if (row.Classe) {
                 const cls = classes.find(c => c.name.toLowerCase() === row.Classe.toString().toLowerCase());
                 if (cls) classId = cls.id!;
             }
-            
-            // If class not found, maybe skip or default? Let's skip if no class in row or db
             if (!classId && selectedClassFilter !== 'all') {
                classId = parseInt(selectedClassFilter);
             }
-            
             if (!classId) {
-                // Try to find a default class or create? 
-                // For safety, let's require class
                 skipped++; 
                 continue;
             }
 
-            // Check duplicate
             const exists = await db.students.where({
                 firstName: row.Prénom,
                 lastName: row.Nom,
@@ -164,7 +154,6 @@ export default function Students() {
     reader.readAsBinaryString(file);
   };
 
-  // Exports
   const getFilteredData = () => {
     return students.filter(s => {
       const matchesSearch = s.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -174,6 +163,8 @@ export default function Students() {
       return matchesSearch && matchesClass;
     });
   };
+
+  const FOOTER_TEXT = "Tawfeex_ak_Taysiir / khadimba18@gmail.com / 77 737 95 80";
 
   const exportPDFList = () => {
     const doc = new jsPDF();
@@ -187,6 +178,14 @@ export default function Students() {
         s.matricule, s.firstName, s.lastName, s.sex, s.dob || '-', s.pob || '-'
       ]),
     });
+    
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(FOOTER_TEXT, 105, 290, { align: "center" });
+    }
+    
     doc.save(`Liste_Eleves_${clsName}.pdf`);
   };
 
@@ -199,7 +198,8 @@ export default function Students() {
       "Sexe": s.sex,
       "Date Naissance": s.dob,
       "Lieu Naissance": s.pob,
-      "Classe": classes.find(c => c.id === s.classId)?.name
+      "Classe": classes.find(c => c.id === s.classId)?.name,
+      "Footer": FOOTER_TEXT
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -223,6 +223,16 @@ export default function Students() {
 
     const doc = new Document({
       sections: [{
+        footers: {
+            default: new Footer({
+                children: [
+                    new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [new TextRun(FOOTER_TEXT)],
+                    }),
+                ],
+            }),
+        },
         children: [
           new Paragraph(`Liste Nominative - ${clsName}`),
           new DocTable({
@@ -249,36 +259,30 @@ export default function Students() {
   };
 
   const generateCard = (student: Student) => {
-    const doc = new jsPDF({ format: 'a7', orientation: 'landscape' }); // Small card size
-    // A7 is 74mm x 105mm. Landscape: 105 x 74
+    const doc = new jsPDF({ format: 'a7', orientation: 'landscape' });
     
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, 105, 74, 'F');
     
-    // Border
     doc.setLineWidth(1);
-    doc.setDrawColor(41, 128, 185); // Blue
+    doc.setDrawColor(41, 128, 185); 
     doc.rect(2, 2, 101, 70);
 
-    // Header
     doc.setFontSize(8);
     doc.setTextColor(41, 128, 185);
     doc.text("RÉPUBLIQUE DU SÉNÉGAL", 52.5, 8, { align: "center" });
     doc.text("TAWFEEX AK TAYSIIR", 52.5, 12, { align: "center" });
     
-    // Title
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
     doc.text("CARTE SCOLAIRE", 52.5, 20, { align: "center" });
 
-    // Photo Placeholder
     doc.rect(5, 25, 25, 30);
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
     doc.text("PHOTO", 17.5, 40, { align: "center" });
 
-    // Info
     doc.setFontSize(8);
     doc.text(`Prénom: ${student.firstName}`, 35, 30);
     doc.text(`Nom: ${student.lastName}`, 35, 35);
@@ -288,6 +292,9 @@ export default function Students() {
 
     doc.setFontSize(6);
     doc.text("Le Directeur", 80, 60, { align: "center" });
+    
+    doc.setFontSize(5);
+    doc.text(FOOTER_TEXT, 52.5, 70, { align: "center" });
     
     doc.save(`Carte_${student.matricule}.pdf`);
   };
@@ -300,9 +307,9 @@ export default function Students() {
           <p className="text-muted-foreground">Inscriptions, listes et cartes scolaires.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-           <Button variant="outline" size="icon" onClick={exportPDFList} title="PDF"><FileText className="w-4 h-4" /></Button>
-           <Button variant="outline" size="icon" onClick={exportExcelList} title="Excel"><FileSpreadsheet className="w-4 h-4" /></Button>
-           <Button variant="outline" size="icon" onClick={exportWordList} title="Word"><FileType className="w-4 h-4" /></Button>
+           <Button className="bg-red-600 hover:bg-red-700 text-white" size="icon" onClick={exportPDFList} title="PDF"><FileText className="w-4 h-4" /></Button>
+           <Button className="bg-green-600 hover:bg-green-700 text-white" size="icon" onClick={exportExcelList} title="Excel"><FileSpreadsheet className="w-4 h-4" /></Button>
+           <Button className="bg-blue-600 hover:bg-blue-700 text-white" size="icon" onClick={exportWordList} title="Word"><FileType className="w-4 h-4" /></Button>
 
           <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
             <DialogTrigger asChild>

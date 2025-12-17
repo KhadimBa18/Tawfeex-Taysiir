@@ -1,22 +1,24 @@
 import { useState, useEffect } from "react";
-import { db, type Student, type Class, type Mark } from "@/lib/db";
+import { db, type Student, type Class, type Mark, type User } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Printer, Download, Eye } from "lucide-react";
+import { Printer } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import generatedImage from '@assets/generated_images/modern_logo_for_school_app_tawfeex_ak_taysiir.png';
+import { SUBJECTS, normalize } from "@/lib/grading";
 
 export default function Bulletins() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedTrimestre, setSelectedTrimestre] = useState<string>("1");
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     db.classes.toArray().then(setClasses);
+    db.users.toArray().then(setUsers);
   }, []);
 
   useEffect(() => {
@@ -28,52 +30,105 @@ export default function Bulletins() {
   const generatePDF = (student: Student) => {
     const doc = new jsPDF();
     const cls = classes.find(c => c.id === student.classId);
+    const teacher = users.find(u => u.classId === student.classId);
+    const director = users.find(u => u.role === 'director' || u.role === 'admin'); // Fallback
 
-    // Header
+    // Draw Flag of Senegal (Vertical Stripes: Green, Yellow, Red)
+    // Rect size: 20x15
+    doc.setFillColor(0, 147, 88); // Green
+    doc.rect(15, 10, 8, 15, 'F');
+    doc.setFillColor(252, 221, 9); // Yellow
+    doc.rect(23, 10, 8, 15, 'F');
+    doc.setFillColor(239, 51, 64); // Red
+    doc.rect(31, 10, 8, 15, 'F');
+    
+    // Star (Green) in the middle of Yellow stripe
+    // Simple 5-point star or just a small circle if drawing star is complex in pure jsPDF lines
+    doc.setFillColor(0, 147, 88);
+    doc.circle(27, 17.5, 2, 'F');
+
+    // Header Text
     doc.setFontSize(10);
-    doc.text("IA: DAKAR", 15, 15);
-    doc.text("IEF: PARCELLES ASSAINIES", 15, 20);
-    doc.text("ÉCOLE: TAWFEEX AK TAYSIIR", 15, 25);
+    doc.setTextColor(0, 0, 0);
+    doc.text("RÉPUBLIQUE DU SÉNÉGAL", 45, 15);
+    doc.text("MINISTÈRE DE L'ÉDUCATION NATIONALE", 45, 20);
+    doc.text("IA: DAKAR / IEF: PARCELLES ASSAINIES", 45, 25);
+    doc.text("ÉCOLE: TAWFEEX AK TAYSIIR", 45, 30);
     
-    // Logo placeholder
-    // doc.addImage(logo, 'PNG', 170, 10, 20, 20);
-    doc.setFontSize(16);
-    doc.setTextColor(0, 50, 100);
-    doc.text("BULLETIN DE NOTES", 105, 40, { align: "center" });
+    // Logo Placeholder (Text for now or simple circle)
+    doc.setDrawColor(0,0,0);
+    doc.circle(180, 20, 10);
+    doc.setFontSize(8);
+    doc.text("LOGO", 176, 20);
+
+    // Title Zone
+    doc.setFontSize(18);
+    doc.setTextColor(41, 128, 185); // Blue
+    doc.setFont("helvetica", "bold");
+    doc.text("BULLETIN DE NOTES", 105, 45, { align: "center" });
     
-    // Student Info
+    // Student Info Box (Styled)
+    doc.setDrawColor(41, 128, 185);
+    doc.setFillColor(236, 240, 241); // Light Gray/Blue
+    doc.roundedRect(15, 50, 180, 25, 3, 3, 'FD');
+    
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
-    doc.roundedRect(15, 50, 180, 25, 3, 3);
-    doc.text(`Prénom & Nom: ${student.firstName} ${student.lastName}`, 20, 60);
-    doc.text(`Classe: ${cls?.name} | Matricule: ${student.matricule}`, 20, 68);
-    doc.text(`Trimestre: ${selectedTrimestre}${selectedTrimestre === '1' ? 'er' : 'ème'}`, 120, 68);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${student.firstName} ${student.lastName}`, 20, 60);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Matricule: ${student.matricule}`, 20, 68);
+    doc.text(`Classe: ${cls?.name}`, 80, 68);
+    doc.text(`Trimestre: ${selectedTrimestre}${selectedTrimestre === '1' ? 'er' : 'ème'}`, 140, 68);
+    doc.text(`Année: 2024-2025`, 170, 68);
 
-    // Table
+    // Prepare Table Data (Mocked marks for now, ideally fetch real marks)
+    const tableBody = SUBJECTS.map(sub => [
+        sub.label,
+        '--', // Note
+        '--', // Coeff
+        '--', // Total
+        '--', // Appréciation
+    ]);
+
     autoTable(doc, {
       startY: 85,
       head: [['Discipline', 'Note', 'Coeff', 'Total', 'Appréciation']],
-      body: [
-        ['Français', '15/20', '2', '30', 'Bien'],
-        ['Mathématiques', '14/20', '2', '28', 'Bien'],
-        ['Découverte du monde', '16/20', '1', '16', 'Très Bien'],
-        ['Éducation musicale', '18/20', '1', '18', 'Excellent'],
-        // Mock data for prototype
-      ],
+      body: tableBody,
       theme: 'grid',
-      headStyles: { fillColor: [41, 128, 185] }, // Blue header
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      styles: { fontSize: 10, cellPadding: 2 },
+      alternateRowStyles: { fillColor: [240, 248, 255] }
     });
 
-    // Footer
+    // Summary & Signatures
     const finalY = (doc as any).lastAutoTable.finalY + 10;
-    doc.text("Moyenne: 15.5/20", 140, finalY);
-    doc.text("Rang: 3ème", 140, finalY + 7);
     
-    doc.text("L'Enseignant", 30, finalY + 30);
-    doc.text("Le Directeur", 150, finalY + 30);
+    // Stats Box
+    doc.setDrawColor(0);
+    doc.setFillColor(255, 255, 255);
+    doc.rect(130, finalY, 65, 25);
+    doc.text("Moyenne: -- / 20", 135, finalY + 7);
+    doc.text("Rang: -- / --", 135, finalY + 14);
+    doc.text("Décision: --", 135, finalY + 21);
 
+    // Signatures
+    doc.text(`L'Enseignant(e):`, 30, finalY + 40);
+    doc.setFont("helvetica", "bold");
+    doc.text(teacher?.fullName || "Non assigné", 30, finalY + 47);
+    
+    doc.setFont("helvetica", "normal");
+    doc.text("Le Directeur:", 150, finalY + 40);
+    doc.setFont("helvetica", "bold");
+    doc.text(director?.fullName || "Le Directeur", 150, finalY + 47);
+
+    // Footer
+    const footerText = "Tawfeex_ak_Taysiir / khadimba18@gmail.com / 77 737 95 80";
     doc.setFontSize(8);
-    doc.text("Généré par Tawfeex_ak_Taysiir - 77 737 95 80", 105, 280, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.text(footerText, 105, 285, { align: "center" });
 
     doc.save(`Bulletin_${student.lastName}_${student.firstName}.pdf`);
   };
@@ -136,7 +191,7 @@ export default function Bulletins() {
                   <TableRow key={s.id}>
                     <TableCell className="font-mono text-xs">{s.matricule}</TableCell>
                     <TableCell className="font-medium">{s.firstName} {s.lastName}</TableCell>
-                    <TableCell>15.5/20</TableCell>
+                    <TableCell>--/20</TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" variant="outline" className="gap-2" onClick={() => generatePDF(s)}>
                         <Printer className="w-4 h-4" /> Imprimer PDF

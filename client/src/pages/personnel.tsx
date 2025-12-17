@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search, Download, Upload, FileText, FileSpreadsheet, FileType } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, FileText, FileSpreadsheet, FileType } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { Document, Packer, Paragraph, Table as DocTable, TableRow as DocTableRow, TableCell as DocTableCell, WidthType } from "docx";
+import { Document, Packer, Paragraph, Table as DocTable, TableRow as DocTableRow, TableCell as DocTableCell, WidthType, Footer, TextRun, AlignmentType } from "docx";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Personnel() {
@@ -77,6 +77,8 @@ export default function Personnel() {
     setIsDialogOpen(true);
   };
 
+  const FOOTER_TEXT = "Tawfeex_ak_Taysiir / khadimba18@gmail.com / 77 737 95 80";
+
   // Export Functions
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -93,6 +95,14 @@ export default function Personnel() {
         classes.find(c => c.id === u.classId)?.name || '-'
       ]),
     });
+    
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(FOOTER_TEXT, 105, 290, { align: "center" });
+    }
+    
     doc.save("personnel.pdf");
   };
 
@@ -103,7 +113,8 @@ export default function Personnel() {
       "Rôle": u.role,
       "Téléphone": u.tel,
       "Email": u.email,
-      "Classe": classes.find(c => c.id === u.classId)?.name || '-'
+      "Classe": classes.find(c => c.id === u.classId)?.name || '-',
+      "Footer": FOOTER_TEXT
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -126,6 +137,16 @@ export default function Personnel() {
 
     const doc = new Document({
       sections: [{
+        footers: {
+            default: new Footer({
+                children: [
+                    new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [new TextRun(FOOTER_TEXT)],
+                    }),
+                ],
+            }),
+        },
         children: [
           new Paragraph("Liste du Personnel"),
           new DocTable({
@@ -164,11 +185,9 @@ export default function Personnel() {
     reader.onload = async (evt) => {
       try {
         const json = JSON.parse(evt.target?.result as string);
-        // Merge logic: Add if not exists
         await db.transaction('rw', db.users, db.classes, db.students, db.marks, async () => {
           if (json.students) await db.students.bulkPut(json.students);
           if (json.marks) await db.marks.bulkPut(json.marks);
-          // Add other tables as needed
         });
         toast({ title: "Synchronisation réussie", description: "Les données ont été fusionnées." });
         loadData();
@@ -210,9 +229,9 @@ export default function Personnel() {
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" size="icon" onClick={exportPDF} title="PDF"><FileText className="w-4 h-4" /></Button>
-          <Button variant="outline" size="icon" onClick={exportExcel} title="Excel"><FileSpreadsheet className="w-4 h-4" /></Button>
-          <Button variant="outline" size="icon" onClick={exportWord} title="Word"><FileType className="w-4 h-4" /></Button>
+          <Button className="bg-red-600 hover:bg-red-700 text-white" size="icon" onClick={exportPDF} title="PDF"><FileText className="w-4 h-4" /></Button>
+          <Button className="bg-green-600 hover:bg-green-700 text-white" size="icon" onClick={exportExcel} title="Excel"><FileSpreadsheet className="w-4 h-4" /></Button>
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white" size="icon" onClick={exportWord} title="Word"><FileType className="w-4 h-4" /></Button>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
