@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Save, Loader2, Settings2 } from "lucide-react";
+import { Save, Loader2, Settings2, Upload, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/use-auth";
+import * as XLSX from 'xlsx';
 
 export default function Evaluations() {
   const [classes, setClasses] = useState<Class[]>([]);
@@ -23,10 +25,35 @@ export default function Evaluations() {
   const [configs, setConfigs] = useState<SubjectConfig[]>(DEFAULT_CONFIG);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    db.classes.toArray().then(setClasses);
-  }, []);
+    loadInitData();
+  }, [user]); // Reload if user changes
+
+  const loadInitData = async () => {
+    let cls = await db.classes.toArray();
+    
+    // RBAC: If teacher, filter classes
+    if (user?.role === 'teacher' && user.classId) {
+      cls = cls.filter(c => c.id === user.classId);
+      if (cls.length > 0) {
+        setSelectedClassId(cls[0].id!.toString());
+      }
+    }
+    setClasses(cls);
+
+    // Load configs
+    const storedConfigs = await db.configs.toArray();
+    if (storedConfigs.length > 0) {
+      // Merge with defaults to ensure all subjects exist
+      const merged = DEFAULT_CONFIG.map(def => {
+        const found = storedConfigs.find(s => s.subjectId === def.subjectId);
+        return found || def;
+      });
+      setConfigs(merged);
+    }
+  };
 
   useEffect(() => {
     if (selectedClassId) {
@@ -37,15 +64,30 @@ export default function Evaluations() {
 
   const loadMarks = async () => {
     if (!selectedClassId) return;
-    const allMarks = await db.marks.toArray(); 
+    const allMarks = await db.marks.where("classId").equals(parseInt(selectedClassId)).toArray();
     setMarks(allMarks);
+  };
+
+  const saveConfig = async () => {
+    try {
+      await db.configs.clear();
+      await db.configs.bulkAdd(configs);
+      toast({ title: "Succès", description: "Barèmes enregistrés" });
+      setIsConfigOpen(false);
+    } catch (e) {
+      toast({ title: "Erreur", description: "Échec de l'enregistrement", variant: "destructive" });
+    }
+  };
+
+  const handleConfigChange = (subjectId: string, field: keyof SubjectConfig, value: string) => {
+    const num = parseInt(value) || 0;
+    setConfigs(prev => prev.map(c => c.subjectId === subjectId ? { ...c, [field]: num } : c));
   };
 
   const handleMarkChange = (studentId: number, type: 'res' | 'comp' | 'global', value: string) => {
     const numValue = parseFloat(value);
-    if (isNaN(numValue) && value !== "") return; // Allow empty string to clear
+    if (isNaN(numValue) && value !== "") return; 
 
-    // Optimistic update
     const newMark = {
       studentId,
       classId: parseInt(selectedClassId),
@@ -76,6 +118,69 @@ export default function Evaluations() {
     return m?.value?.toString() || "";
   };
 
+  // Excel Export/Import
+  const exportGrades = () => {
+    if (!selectedClassId) return;
+    const cls = classes.find(c => c.id === parseInt(selectedClassId));
+    
+    const data = students.map(s => {
+      const row: any = {
+        "Matricule": s.matricule,
+        "Prénom": s.firstName,
+        "Nom": s.lastName,
+      };
+      // Add columns for current subject only or all? Let's do current subject for simplicity
+      if (currentSubject?.hasSub) {
+        row[`${currentSubject.label} (Res)`] = getMarkValue(s.id!, 'res');
+        row[`${currentSubject.label} (Comp)`] = getMarkValue(s.id!, 'comp');
+      } else {
+        row[`${currentSubject?.label}`] = getMarkValue(s.id!, 'global');
+      }
+      return row;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Notes");
+    XLSX.writeFile(wb, `Notes_${cls?.name}_${currentSubject?.label}_T${selectedTrimestre}.xlsx`);
+  };
+
+  const importGrades = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws) as any[];
+
+        let imported = 0;
+        for (const row of data) {
+           const student = students.find(s => s.matricule === row.Matricule);
+           if (student && currentSubject) {
+             if (currentSubject.hasSub) {
+               const res = row[`${currentSubject.label} (Res)`];
+               const comp = row[`${currentSubject.label} (Comp)`];
+               if (res !== undefined) handleMarkChange(student.id!, 'res', res);
+               if (comp !== undefined) handleMarkChange(student.id!, 'comp', comp);
+             } else {
+               const val = row[`${currentSubject.label}`];
+               if (val !== undefined) handleMarkChange(student.id!, 'global', val);
+             }
+             imported++;
+           }
+        }
+        toast({ title: "Import terminé", description: `${imported} notes mises à jour.` });
+      } catch (e) {
+        toast({ title: "Erreur", description: "Fichier invalide", variant: "destructive" });
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
   const currentSubject = SUBJECTS.find(s => s.id === selectedSubjectId);
   const currentConfig = configs.find(c => c.subjectId === selectedSubjectId) || { subjectId: selectedSubjectId } as SubjectConfig;
 
@@ -86,40 +191,78 @@ export default function Evaluations() {
           <h1 className="text-3xl font-bold text-primary">Évaluations</h1>
           <p className="text-muted-foreground">Saisie des notes par trimestre et discipline.</p>
         </div>
-        <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Settings2 className="w-4 h-4" /> Configurer Barèmes
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Barèmes pour {currentSubject?.label}</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              {currentSubject?.hasSub ? (
-                <>
-                  <div className="space-y-2">
-                    <Label>Max Ressources</Label>
-                    <Input type="number" defaultValue={currentConfig.maxRes} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Max Compétences</Label>
-                    <Input type="number" defaultValue={currentConfig.maxComp} />
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <Label>Max Note Globale</Label>
-                  <Input type="number" defaultValue={currentConfig.maxGlobal} />
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={() => setIsConfigOpen(false)}>Enregistrer</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+           <Button variant="outline" size="sm" onClick={exportGrades} title="Exporter Excel">
+             <Download className="w-4 h-4 mr-2" /> Exporter
+           </Button>
+           <div className="relative">
+             <Button variant="outline" size="sm" className="cursor-pointer">
+               <Upload className="w-4 h-4 mr-2" /> Importer
+             </Button>
+             <Input 
+               type="file" 
+               accept=".xlsx" 
+               className="absolute inset-0 opacity-0 cursor-pointer" 
+               onChange={importGrades}
+             />
+           </div>
+
+          <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings2 className="w-4 h-4" /> Barèmes
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Configurer les Barèmes</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+                {configs.map((conf) => {
+                  const sub = SUBJECTS.find(s => s.id === conf.subjectId);
+                  if (!sub) return null;
+                  return (
+                    <div key={conf.subjectId} className="border p-3 rounded-lg space-y-2">
+                      <h4 className="font-semibold">{sub.label}</h4>
+                      {sub.hasSub ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Max Res</Label>
+                            <Input 
+                              type="number" 
+                              value={conf.maxRes} 
+                              onChange={(e) => handleConfigChange(conf.subjectId, 'maxRes', e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Max Comp</Label>
+                            <Input 
+                              type="number" 
+                              value={conf.maxComp} 
+                              onChange={(e) => handleConfigChange(conf.subjectId, 'maxComp', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <Label className="text-xs">Max Note</Label>
+                          <Input 
+                            type="number" 
+                            value={conf.maxGlobal} 
+                            onChange={(e) => handleConfigChange(conf.subjectId, 'maxGlobal', e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={saveConfig}>Enregistrer Tout</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card className="bg-secondary/10 border-none">
@@ -226,7 +369,9 @@ export default function Evaluations() {
         </Card>
       ) : (
         <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-xl border-2 border-dashed">
-          Veuillez sélectionner une classe pour commencer la saisie.
+          {user?.role === 'teacher' && classes.length === 0 
+            ? "Aucune classe ne vous est attribuée. Contactez l'administrateur." 
+            : "Veuillez sélectionner une classe pour commencer la saisie."}
         </div>
       )}
     </div>

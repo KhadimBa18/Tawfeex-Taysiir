@@ -1,4 +1,4 @@
-import { Mark } from "./db";
+import { Mark, SubjectConfig } from "./db";
 
 export const SUBJECTS = [
   { id: "francais", label: "Français", hasSub: true },
@@ -9,13 +9,6 @@ export const SUBJECTS = [
   { id: "musique", label: "Éducation musicale", hasSub: false },
   { id: "arabe", label: "Arabe", hasSub: false },
 ];
-
-export interface SubjectConfig {
-  subjectId: string;
-  maxRes?: number;
-  maxComp?: number;
-  maxGlobal?: number; // for subjects without sub-parts
-}
 
 // Default config - can be overridden per class later
 export const DEFAULT_CONFIG: SubjectConfig[] = [

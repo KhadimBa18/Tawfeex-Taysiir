@@ -17,6 +17,10 @@ export interface User {
   fullName: string;
   role: 'admin' | 'director' | 'teacher';
   photo?: string;
+  email?: string;
+  tel?: string;
+  matricule?: string;
+  classId?: number; // Linked class for teachers
 }
 
 export interface Class {
@@ -24,7 +28,6 @@ export interface Class {
   name: string; // e.g. "CM2 A"
   level: string; // CI, CP, CE1, CE2, CM1, CM2
   type: string; // A, B, Arabe, etc.
-  teacherId?: number;
 }
 
 export interface Student {
@@ -47,21 +50,31 @@ export interface Mark {
   value: number;
 }
 
+export interface SubjectConfig {
+  id?: number;
+  subjectId: string;
+  maxRes?: number;
+  maxComp?: number;
+  maxGlobal?: number;
+}
+
 export class SchoolDatabase extends Dexie {
   schools!: Table<School>;
   users!: Table<User>;
   classes!: Table<Class>;
   students!: Table<Student>;
   marks!: Table<Mark>;
+  configs!: Table<SubjectConfig>;
 
   constructor() {
     super('TawfeexAkTaysiirDB');
-    this.version(1).stores({
+    this.version(2).stores({
       schools: '++id',
       users: '++id, username',
       classes: '++id, name, level',
       students: '++id, matricule, classId',
-      marks: '++id, [studentId+subjectId+trimestre], classId'
+      marks: '++id, [studentId+subjectId+trimestre], classId',
+      configs: '++id, subjectId'
     });
   }
 }
@@ -72,7 +85,7 @@ export const db = new SchoolDatabase();
 db.on('populate', async () => {
   await db.users.add({
     username: 'Tawfeex',
-    passwordHash: 'Taysiir', // Plain text for prototype requirement
+    passwordHash: 'Taysiir', 
     fullName: 'KHADIM BA',
     role: 'admin',
     photo: 'https://ui-avatars.com/api/?name=Khadim+Ba&background=random'

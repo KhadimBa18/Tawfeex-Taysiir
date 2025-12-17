@@ -6,14 +6,20 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search, Download, Upload, FileUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Download, Upload, FileUp, IdCard, FileText, FileSpreadsheet, FileType } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from 'xlsx';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { saveAs } from 'file-saver';
+import { Document, Packer, Paragraph, Table as DocTable, TableRow as DocTableRow, TableCell as DocTableCell, WidthType } from "docx";
+import generatedImage from '@assets/generated_images/modern_logo_for_school_app_tawfeex_ak_taysiir.png';
 
 export default function Students() {
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClassFilter, setSelectedClassFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const { toast } = useToast();
@@ -44,20 +50,44 @@ export default function Students() {
       return;
     }
 
+    // Duplicate Check
+    const duplicate = students.find(s => 
+      s.firstName.toLowerCase() === newStudent.firstName?.toLowerCase() &&
+      s.lastName.toLowerCase() === newStudent.lastName?.toLowerCase() &&
+      s.classId === newStudent.classId
+    );
+
+    if (duplicate && !newStudent.id) {
+       if (!confirm("Un élève avec ce nom existe déjà dans cette classe. Continuer ?")) {
+         return;
+       }
+    }
+
     try {
-      const matricule = await generateMatricule();
-      await db.students.add({
-        ...newStudent,
-        matricule,
-        sex: newStudent.sex as 'M' | 'F'
-      } as Student);
+      if (newStudent.id) {
+        await db.students.update(newStudent.id, newStudent);
+      } else {
+        const matricule = await generateMatricule();
+        await db.students.add({
+          ...newStudent,
+          matricule,
+          sex: newStudent.sex as 'M' | 'F'
+        } as Student);
+      }
       
-      toast({ title: "Succès", description: "Élève ajouté avec succès" });
+      toast({ title: "Succès", description: "Élève enregistré" });
       setIsDialogOpen(false);
       loadData();
       setNewStudent({ sex: 'M' });
     } catch (error) {
-      toast({ title: "Erreur", description: "Impossible d'ajouter l'élève", variant: "destructive" });
+      toast({ title: "Erreur", description: "Impossible d'enregistrer", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (confirm("Supprimer cet élève ?")) {
+      await db.students.delete(id);
+      loadData();
     }
   };
 
@@ -74,35 +104,57 @@ export default function Students() {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws) as any[];
 
-        // Basic validation and import
         let imported = 0;
+        let skipped = 0;
+
         for (const row of data) {
-          if (row.Prénom && row.Nom && row.Classe) {
+          // Expected columns: Prénom, Nom, Sexe, DateNaissance, LieuNaissance, Classe
+          if (row.Prénom && row.Nom) {
             // Find class ID
-            const className = row.Classe.toString().trim();
-            let cls = classes.find(c => c.name.toLowerCase() === className.toLowerCase());
+            let classId = 0;
+            if (row.Classe) {
+                const cls = classes.find(c => c.name.toLowerCase() === row.Classe.toString().toLowerCase());
+                if (cls) classId = cls.id!;
+            }
             
-            // Auto-create class if missing (optional feature, but helpful)
-            if (!cls) {
-               // Skip for now or handle
-               continue; 
+            // If class not found, maybe skip or default? Let's skip if no class in row or db
+            if (!classId && selectedClassFilter !== 'all') {
+               classId = parseInt(selectedClassFilter);
+            }
+            
+            if (!classId) {
+                // Try to find a default class or create? 
+                // For safety, let's require class
+                skipped++; 
+                continue;
             }
 
-            const matricule = await generateMatricule();
-            await db.students.add({
-              matricule,
-              firstName: row.Prénom,
-              lastName: row.Nom,
-              sex: row.Sexe === 'F' ? 'F' : 'M',
-              classId: cls.id!,
-              dob: row.DateNaissance,
-              pob: row.LieuNaissance
-            });
-            imported++;
+            // Check duplicate
+            const exists = await db.students.where({
+                firstName: row.Prénom,
+                lastName: row.Nom,
+                classId: classId
+            }).first();
+
+            if (!exists) {
+                const matricule = await generateMatricule();
+                await db.students.add({
+                  matricule,
+                  firstName: row.Prénom,
+                  lastName: row.Nom,
+                  sex: row.Sexe === 'F' ? 'F' : 'M',
+                  classId: classId,
+                  dob: row.DateNaissance,
+                  pob: row.LieuNaissance
+                });
+                imported++;
+            } else {
+                skipped++;
+            }
           }
         }
         
-        toast({ title: "Import terminé", description: `${imported} élèves importés.` });
+        toast({ title: "Import terminé", description: `${imported} ajoutés, ${skipped} ignorés.` });
         setIsImportOpen(false);
         loadData();
       } catch (err) {
@@ -112,11 +164,133 @@ export default function Students() {
     reader.readAsBinaryString(file);
   };
 
-  const filteredStudents = students.filter(s => 
-    s.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.matricule.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Exports
+  const getFilteredData = () => {
+    return students.filter(s => {
+      const matchesSearch = s.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            s.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            s.matricule.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesClass = selectedClassFilter === "all" || s.classId.toString() === selectedClassFilter;
+      return matchesSearch && matchesClass;
+    });
+  };
+
+  const exportPDFList = () => {
+    const doc = new jsPDF();
+    const clsName = selectedClassFilter !== 'all' ? classes.find(c => c.id === parseInt(selectedClassFilter))?.name : 'Tous';
+    
+    doc.text(`Liste Nominative - Classe: ${clsName}`, 14, 15);
+    autoTable(doc, {
+      startY: 20,
+      head: [['Matricule', 'Prénom', 'Nom', 'Sexe', 'Né(e) le', 'À']],
+      body: getFilteredData().map(s => [
+        s.matricule, s.firstName, s.lastName, s.sex, s.dob || '-', s.pob || '-'
+      ]),
+    });
+    doc.save(`Liste_Eleves_${clsName}.pdf`);
+  };
+
+  const exportExcelList = () => {
+    const clsName = selectedClassFilter !== 'all' ? classes.find(c => c.id === parseInt(selectedClassFilter))?.name : 'Global';
+    const data = getFilteredData().map(s => ({
+      "Matricule": s.matricule,
+      "Prénom": s.firstName,
+      "Nom": s.lastName,
+      "Sexe": s.sex,
+      "Date Naissance": s.dob,
+      "Lieu Naissance": s.pob,
+      "Classe": classes.find(c => c.id === s.classId)?.name
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Élèves");
+    XLSX.writeFile(wb, `Eleves_${clsName}.xlsx`);
+  };
+
+  const exportWordList = async () => {
+     const clsName = selectedClassFilter !== 'all' ? classes.find(c => c.id === parseInt(selectedClassFilter))?.name : 'Tous';
+     const rows = getFilteredData().map(s => 
+      new DocTableRow({
+        children: [
+          new DocTableCell({ children: [new Paragraph(s.matricule)] }),
+          new DocTableCell({ children: [new Paragraph(s.firstName)] }),
+          new DocTableCell({ children: [new Paragraph(s.lastName)] }),
+          new DocTableCell({ children: [new Paragraph(s.sex)] }),
+          new DocTableCell({ children: [new Paragraph(s.dob || "")] }),
+        ],
+      })
+    );
+
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph(`Liste Nominative - ${clsName}`),
+          new DocTable({
+             rows: [
+               new DocTableRow({
+                 children: [
+                   new DocTableCell({ children: [new Paragraph("Matricule")] }),
+                   new DocTableCell({ children: [new Paragraph("Prénom")] }),
+                   new DocTableCell({ children: [new Paragraph("Nom")] }),
+                   new DocTableCell({ children: [new Paragraph("Sexe")] }),
+                   new DocTableCell({ children: [new Paragraph("Date Naiss.")] }),
+                 ]
+               }),
+               ...rows
+             ],
+             width: { size: 100, type: WidthType.PERCENTAGE }
+          })
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `Liste_Eleves_${clsName}.docx`);
+  };
+
+  const generateCard = (student: Student) => {
+    const doc = new jsPDF({ format: 'a7', orientation: 'landscape' }); // Small card size
+    // A7 is 74mm x 105mm. Landscape: 105 x 74
+    
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, 105, 74, 'F');
+    
+    // Border
+    doc.setLineWidth(1);
+    doc.setDrawColor(41, 128, 185); // Blue
+    doc.rect(2, 2, 101, 70);
+
+    // Header
+    doc.setFontSize(8);
+    doc.setTextColor(41, 128, 185);
+    doc.text("RÉPUBLIQUE DU SÉNÉGAL", 52.5, 8, { align: "center" });
+    doc.text("TAWFEEX AK TAYSIIR", 52.5, 12, { align: "center" });
+    
+    // Title
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("CARTE SCOLAIRE", 52.5, 20, { align: "center" });
+
+    // Photo Placeholder
+    doc.rect(5, 25, 25, 30);
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "normal");
+    doc.text("PHOTO", 17.5, 40, { align: "center" });
+
+    // Info
+    doc.setFontSize(8);
+    doc.text(`Prénom: ${student.firstName}`, 35, 30);
+    doc.text(`Nom: ${student.lastName}`, 35, 35);
+    doc.text(`Né(e) le: ${student.dob || '-'}`, 35, 40);
+    doc.text(`Classe: ${classes.find(c => c.id === student.classId)?.name || '-'}`, 35, 45);
+    doc.text(`Matricule: ${student.matricule}`, 35, 50);
+
+    doc.setFontSize(6);
+    doc.text("Le Directeur", 80, 60, { align: "center" });
+    
+    doc.save(`Carte_${student.matricule}.pdf`);
+  };
 
   return (
     <div className="space-y-6">
@@ -125,16 +299,20 @@ export default function Students() {
           <h1 className="text-3xl font-bold text-primary">Gestion des Élèves</h1>
           <p className="text-muted-foreground">Inscriptions, listes et cartes scolaires.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+           <Button variant="outline" size="icon" onClick={exportPDFList} title="PDF"><FileText className="w-4 h-4" /></Button>
+           <Button variant="outline" size="icon" onClick={exportExcelList} title="Excel"><FileSpreadsheet className="w-4 h-4" /></Button>
+           <Button variant="outline" size="icon" onClick={exportWordList} title="Word"><FileType className="w-4 h-4" /></Button>
+
           <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
             <DialogTrigger asChild>
               <Button variant="secondary" className="gap-2">
-                <FileUp className="w-4 h-4" /> Importer Excel
+                <FileUp className="w-4 h-4" /> Importer
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Importer depuis Excel</DialogTitle>
+                <DialogTitle>Importer Excel</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4 text-center">
                 <div className="border-2 border-dashed rounded-lg p-8 hover:bg-muted/50 transition-colors">
@@ -144,7 +322,10 @@ export default function Students() {
                     onChange={handleImport} 
                     className="cursor-pointer"
                   />
-                  <p className="text-xs text-muted-foreground mt-2">Format: Prénom, Nom, Sexe, DateNaissance, LieuNaissance, Classe</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Format: Prénom, Nom, Sexe, DateNaissance, LieuNaissance, Classe<br/>
+                    Nom du fichier suggéré: élèves_CI.xlsx
+                  </p>
                 </div>
               </div>
             </DialogContent>
@@ -152,13 +333,13 @@ export default function Students() {
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={() => setNewStudent({ sex: 'M' })}>
                 <Plus className="w-4 h-4" /> Nouvel Élève
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Inscrire un élève</DialogTitle>
+                <DialogTitle>{newStudent.id ? 'Modifier' : 'Inscrire'} un élève</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -179,9 +360,7 @@ export default function Students() {
                       value={newStudent.sex} 
                       onValueChange={(v) => setNewStudent({...newStudent, sex: v as 'M'|'F'})}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="M">Masculin</SelectItem>
                         <SelectItem value="F">Féminin</SelectItem>
@@ -194,9 +373,7 @@ export default function Students() {
                       value={newStudent.classId?.toString()} 
                       onValueChange={(v) => setNewStudent({...newStudent, classId: parseInt(v)})}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                       <SelectContent>
                         {classes.map(c => <SelectItem key={c.id} value={c.id!.toString()}>{c.name}</SelectItem>)}
                       </SelectContent>
@@ -226,16 +403,25 @@ export default function Students() {
       </div>
 
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <Search className="w-4 h-4 text-muted-foreground" />
             <Input 
-              placeholder="Rechercher par nom ou matricule..." 
+              placeholder="Rechercher..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
+              className="max-w-xs"
             />
           </div>
+          <Select value={selectedClassFilter} onValueChange={setSelectedClassFilter}>
+             <SelectTrigger className="w-[180px]">
+               <SelectValue placeholder="Filtrer par classe" />
+             </SelectTrigger>
+             <SelectContent>
+               <SelectItem value="all">Toutes les classes</SelectItem>
+               {classes.map(c => <SelectItem key={c.id} value={c.id!.toString()}>{c.name}</SelectItem>)}
+             </SelectContent>
+          </Select>
         </CardHeader>
         <CardContent>
           <Table>
@@ -250,14 +436,14 @@ export default function Students() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredStudents.length === 0 ? (
+              {getFilteredData().length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Aucun élève trouvé.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredStudents.map((s) => (
+                getFilteredData().map((s) => (
                   <TableRow key={s.id}>
                     <TableCell className="font-mono text-xs">{s.matricule}</TableCell>
                     <TableCell className="font-medium">{s.firstName} {s.lastName}</TableCell>
@@ -266,10 +452,13 @@ export default function Students() {
                     <TableCell>{s.dob || '-'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                         <Button variant="ghost" size="icon">
+                         <Button variant="ghost" size="icon" title="Carte Scolaire" onClick={() => generateCard(s)}>
+                            <IdCard className="w-4 h-4 text-blue-500" />
+                         </Button>
+                         <Button variant="ghost" size="icon" onClick={() => { setNewStudent(s); setIsDialogOpen(true); }}>
                           <Pencil className="w-4 h-4 text-primary" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id!)}>
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
