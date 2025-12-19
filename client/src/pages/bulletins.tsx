@@ -50,6 +50,49 @@ export default function Bulletins() {
     return m ? m.value : null;
   };
 
+  const calculateStudentRank = (studentId: number) => {
+    // Calculate average for each student in the class
+    const studentAverages = students.map(s => {
+      let totalScore = 0;
+      let totalMax = 0;
+      
+      SUBJECTS.forEach(sub => {
+        const conf = configs.find(c => c.subjectId === sub.id) || {};
+        
+        if (sub.hasSub) {
+          const resVal = getMarkValue(s.id!, sub.id, 'res');
+          const resMax = conf.maxRes || 40;
+          if (resVal !== null) { totalScore += resVal; totalMax += resMax; }
+          
+          const compVal = getMarkValue(s.id!, sub.id, 'comp');
+          const compMax = conf.maxComp || 60;
+          if (compVal !== null) { totalScore += compVal; totalMax += compMax; }
+        } else {
+          const val = getMarkValue(s.id!, sub.id, 'global');
+          const max = conf.maxGlobal || 20;
+          if (val !== null) { totalScore += val; totalMax += max; }
+        }
+      });
+      
+      const average = totalMax > 0 ? (totalScore / totalMax) * 20 : 0;
+      return { studentId: s.id, average };
+    });
+
+    // Sort by average descending
+    const sorted = studentAverages.sort((a, b) => b.average - a.average);
+    
+    // Find rank
+    let rank = 1;
+    for (let i = 0; i < sorted.length; i++) {
+      if (sorted[i].studentId === studentId) {
+        rank = i + 1;
+        break;
+      }
+    }
+    
+    return { rank, total: students.length };
+  };
+
   const generatePDF = (student: Student) => {
     const doc = new jsPDF();
     const cls = classes.find(c => c.id === student.classId);
@@ -220,14 +263,15 @@ export default function Bulletins() {
     
     // Stats
     const average = totalMax > 0 ? (totalScore / totalMax) * 20 : 0;
+    const { rank, total } = calculateStudentRank(student.id!);
     
     doc.setDrawColor(0);
     doc.setFillColor(255, 255, 255);
     doc.rect(130, finalY, 65, 25);
     doc.setFont("helvetica", "bold");
     doc.text(`Moyenne: ${average.toFixed(2)} / 20`, 135, finalY + 7);
-    doc.text("Rang: -- / --", 135, finalY + 14); // Need full class calculation for Rank
-    doc.text(`Décision: ${average >= 10 ? 'Admis' : 'Echoué'}`, 135, finalY + 21);
+    doc.text(`Rang: ${rank} / ${total}`, 135, finalY + 14);
+    doc.text(`Décision: ${average >= 10 ? 'Admis' : 'Échoué'}`, 135, finalY + 21);
 
     // Signatures
     doc.setFontSize(10);
