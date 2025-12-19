@@ -9,6 +9,7 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Classes from "@/pages/classes";
 import Students from "@/pages/students";
+import Disciplines from "@/pages/disciplines";
 import Evaluations from "@/pages/evaluations";
 import Bulletins from "@/pages/bulletins";
 import Stats from "@/pages/stats";
@@ -96,6 +97,10 @@ function Router() {
       
       <Route path="/students">
         {() => <ProtectedRoute component={Students} />}
+      </Route>
+
+      <Route path="/disciplines">
+        {() => <ProtectedRoute component={Disciplines} />}
       </Route>
       
       <Route path="/evaluations">

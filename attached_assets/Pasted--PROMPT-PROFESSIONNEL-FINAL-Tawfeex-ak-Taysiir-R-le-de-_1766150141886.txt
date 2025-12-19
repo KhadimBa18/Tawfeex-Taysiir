@@ -1,0 +1,146 @@
+
+✅ PROMPT PROFESSIONNEL FINAL – Tawfeex_ak_Taysiir
+Rôle de l’IA
+Agis comme un ingénieur logiciel senior, architecte full-stack et techno-pédagogue, spécialiste des applications scolaires offline-first, adaptées aux enseignants non techniciens et aux réalités du système éducatif sénégalais.
+Objectif
+Concevoir une application scolaire moderne, sécurisée et 100 % fonctionnelle hors ligne, nommée Tawfeex_ak_Taysiir, dédiée à la gestion complète des évaluations d’une école élémentaire.
+Exigences essentielles
+Identité visuelle
+    • Le logo officiel “Tawfeex_ak_Taysiir” doit apparaître :
+        ◦ sur toutes les pages,
+        ◦ dans tous les modules,
+        ◦ sur tous les documents PDF imprimables.
+Architecture & Sécurité
+    • Application PWA ou Desktop/Web hybride
+    • Approche offline-first
+    • Base locale : SQLite / IndexedDB
+    • Sauvegarde & restauration locales
+    • Authentification sécurisée (hashage)
+    • Rôles : Admin / Directeur / Enseignant
+    • Déconnexion sécurisée
+Interface utilisateur
+    • Design moderne, professionnel et responsive
+    • Navigation par icônes colorées intuitives
+Boutons obligatoires (icônes)
+Modifier Supprimer | Enregistrer | Annuler Accueil |  Retour |  Télécharger |   Imprimer
+Configuration initiale (1ère ouverture)
+    • Utilisateur (défaut : KHADIM BA)
+    • Login : Tawfeex | Mot de passe : Taysiir
+    • IA , IEF,  École · Email · Téléphone
+    • Photo de profil obligatoire
+
+Message affiché en haut dans chaque module :
+Bienvenue dans Tawfeex_ak_Taysiir – Assistance : KHADIM BA (77 737 95 80)
+
+Modules fonctionnels
+1. Personnel
+    • Ajouer un membre (Nom complet, Matricule, Téléphone (+221+ 9chiffres), Email (configure pour email), Identifiant, Role (Directeur / Directrice / Enseignant / Enseignant / Autre (A Préciser),  Classe attribuée.
+    • Après enregistrement : Actions (Modifier, Supprimer)
+    • Gestion sécurisée
+    • Affiche en haut du bouton Nouveau Membre ces 3 fichiers (pdf, word, excel, avec leurs couleurs boutons naturels pour faciliter leur visibilité)
+    • Affiche un bouton coloré permettant de synchroniser les informations de l’application partagé par chaque collègue pour plus d’efficacité et d’efficience dans le travail.
+    • Boutons (enregistrer , annuler les mises à jour)
+2. Gestion des Classes
+    • CI à CM2 (+ variantes A/B), Arabe, Autre
+    • Recherche, tri, détection de doublons
+    • Configuration automatique selon nombre de cours
+    • Après enregistrement : Actions (Modifier, Supprimer)
+    • Disciplines et barèmes propres à chaque classe
+    • fichier excel à importer et à exporter : fichier élève (par exemple : élèves_CI ; élèves_CP ;……. ,) contenant (prénoms, nom, sexe,  date et lieu de naissance (facultatif).
+Nb : les matricules seront générés directement (KB_0000) après la validation  des informations exportées .
+    • fichier excel (à importer et à exporter : fichier notes (par exemple : notes_CI ; notes_CP ;……. ), contenant (prénoms, nom, disciplines à composer)
+ 3. Élèves
+3.a .Champs :
+    • Prénom(s), Nom, Sexe (M/F)
+    • Date & lieu de naissance (facultatifs)
+    • Classe, Matricule auto-généré
+    • Recherche, tri par classe, détection de doublons
+    • Boutons (pdf, word) pour télécharger la liste nominative de chaque et un autre pour la  carte d’idendité scolaire (pdf , npg)
+    • 2 boutons excel de couleurs différents pou exporter :jaune ; importer :verte (Matricule, Prénoms, Nom, Sexe, Date et lieu de naissance (facultatif). La matricule sera générée automatique par l’application. Une fois exporter le fichier sous le nom pour chaque classe par exemple: élèves_CI, crée un bouton pour vérification des informations saisie, si oui, valide et sinon. Indique l’erreur réel à corrigé. Fais en sorte que le fichier n’accepte pas  les chiffres dans la cellule des prénoms, nom, sexe et vis à versa pour le sexe. Pour rendre la colonne professionnelle met une liste déroulante (M/F) avec la possibilité d’accepter collage directe.  Si deux personnes ont même  prénoms, nom, sexe. Affiche un message  (Est-ce un doublon ou pas ?, si oui n’accepte pas ; si non Affiche « Saisir leur date et lieu de naissance pour les différencier)
+    • Recherche, tri, détection de doublons
+    • Carte d’identité scolaire : 1. Entête avec une zone de texte en 3D colorié( République du Sénégal, Nom de l’école, drapeau du Sénégal, le logo Tawfeex_ak_Taysiir). 2. Corps de la carte  avec une zone de texte en 3D colorié (photo (avatare par défaut selon le sexe) possibilité d’insérer une photo (png ou jpn), prénoms, nom, classe, matricule, le Directeur ou Directeur (son nom). 3. En bas ? Pied de page mettez : @2025 Tawfeex_ak_Taysiir/khadimba18@gmail.com/777379580, séparé par un trait horizontale colorié, et email (blue)
+    • NB : ce pied de page mettez : @2025 Tawfeex_ak_Taysiir/khadimba18@gmail.com/777379580, séparé par un trait horizontale colorié, et email (blue), doit obligatoirement apparaît dans tout pdf ou word à télécharger, imprimer, ….idem pour les bulletins
+      4. Disciplines :
+    • Configurer les disciplines 
+    • Mathématiques ressources = Ressources1+ Ressources2 + ………..+ Ressources12 (à remplir).
+    • Mathématiques compétences 
+    • Français ressources = Ressources1+ Ressources2 + ………..+ Ressources12 (à remplir).
+    • Français compétences = Compétences1+ Compétences2 + ………..+ Compétences7 (à remplir)
+    • Découverte du monde ressources = Ressources1+ Ressources2 +Ressources 3 (à remplir)
+    • Découverte du monde compétences 
+    • Éducation au développement durable ressources = Ressources1+ Ressources2  (à remplir)
+    • Éducation au développement durable  compétences 
+    • Art plastique 
+    • Education musicale 
+    • Arabe
+    Ressources1;2 ;…. ou compétences1;2 doit être écrit renommé par exemples(en français Ressources1= Grammaire, Compétence1=Fluidité, ….) selon chaque classe et idem pour les autres disciplines avec des ressources et compétences . Fais apparaître pour chaque classe toutes les disciplines confugurées et coche celles définies dans le bulletin.
+    • Configure les Barémes et la fenêtre affiche toute les disciplines  de chaque bulletin (par Français : (Max Res : 280 ; Max Comp : 280) ; Mathématiques : (Max Res : 280 ; Max Comp : 280) ; Découverte du monde (Max Res : 40 ; Max Comp : 60) ;Education au développement durable(Max Res : 40 ; Max Comp : 60) ; Art plastique (Max Note : 40);Education musicale (Max Note : 40) ;Arabe(Max Note : 40) en un seul coup .
+    • 
+    • NB : fais en sorte que, une fois configuré  par exemple : Français ressources, la somme des R1+R2+….R12 dans le fichier de notes ne dépasse pas la valeur configurée de Français ressources et idem pour les autres.
+    • Refuse l’importation ou l’exportation des fichiers excel des notes tant que la configuration des disciplines et les Barèmes ne soient effectives. Sinon affiche ce message d’erreur *Configure les disciplines et les barèmes*. Premier clic pour importer affiche *Avez vous configurer les disciplines et les barèmes* si oui *Télécharger* sinon affiche  le premier message.
+    • S’il clic sur exporter affiche, *Avez-vous déjà télécharger par exemple notes_CI* si oui *Accepte l’exportation* sinon*Merci de télécharge par exemple notes_CI*
+    • NB :  notes_CI ;  notes_CP ;…… , doivent avoir 4 parties avec des titres entêtes respectives MOHEBS(français (ressources ; compétences)) ;  PAAM(Mathématiques (ressources ; compétences)) ; ESVS (Découverte du mondes (ressources ; compétences) et Education au développement durable (ressources ; compétences) ; AUTRES  ( Art plastique ; Education musicale ; Arabe) c’est à dire 4 compartiments avec toutes les disciplines configurées. Respecte cette architecture, car il sera très utiles dans le Module (Statistiques et Graphiques)
+    • Créer 3 copies après validation dont (PAAM, MOHEBS, PAAM+MOHEBS+ESVS+AUTRES ou (notes_CI) )ce sont titres des compartiments  du tableau. 
+    • Créer 3 boutons (PAAM ; MOHEBS ; notes_CI ) navigables en bas de la page permettant après  validation de l’exportation de PAAM ; MOHEBS ; notes_CI de me confirmer les copies de ces fichiers excel sont bien crées dans le Module (Statistiques et Graphiques) . Si je clique un bouton crée en bas par exemple PAAM, sa couleur sera verte et affiche *PAAM est bien crée dans  Statistiques et Graphiques* ; sinon rouge et affiche * PAAM n’est pas bien crée dans  Statistiques et Graphiques*. Même procédé pour MOHEBS et  notes_CI
+NB : Cette bien faite me facilité le travail dans le module  Statistiques et Graphiques 
+    • Recherche, tri par classe, détection de doublons
+    • Création des fichiers excels à importer ou exporter doivent apparaître ici par exemple : notes_CI;notes_CP ; …..Mais après leur valide, seules les disciplines définies pour les bulletin doivent coller dans le module Evaluations (rubrique dédiée à la confectionnée des bulletins des élèves pour chaque classe). J’insiste beaucoup à ce niveau, ne commet pas d’erreur.
+5. Évaluations & Notation
+    • 1er, 2ᵉ et 3ᵉ trimestre
+        ◦ classe (par tri)· toutes les disciplines · trimestre
+        ◦ fenêtre ouverte doit afficher ( les noms des élèves de chaque classe, les notes de chaque discipline, Actions (modifier, supprimer), bulletin à imprimer,). Chaque page doit contenir 10 élèves, les autres navigable à travers les numéros en bas de page.
+        ◦ Cette partie doit accuellir les notes exporter et coller après leur validation
+    • Saisie dans le barème réel → normalisation automatique /100
+    • Calcul automatique : moyennes, rangs, statistiques
+    • Créer un bouton pour vérification si on y clic affiche* Notes bien collées* sinon*Revoir l’exportation des notes*
+    • Attention ne commet pas cette erreur dans cette partie car elle est très intéressante.
+ 6. Bulletins PDF modernes avec des zones de texte 3D colorie et stylé
+    • En-tête : IA,  IEF , École, Elève, classe  Logo Tawfee_ak_Taysiir 
+    • Tableau : Discipline | Note | Observation automatique
+    • Bas : totaux, moyennes, rang, signatures (Ensegnant(e), Directeur ou Directrice)
+    • Pied de page : nom de l’école + @2025Tawfeex_ak_Taysiir/khadimba18@gmail.com/ 777379580 (obligatoire)
+    • Date & heure d’impression automatiques juste avant le pied de page
+    • 3ᵉ trimestre : moyenne 1 trimestre, 2 trimestre, 3 trimestre, moyenne générale, rang général + décision (Admis / Redouble)
+    • Optimisés pour impression externe
+    • Boutons word, pdf colorés pour le téléchargement des bullettins
+    • 2 boutons l’un pour imprimer une bulletin par page et l’autre pour imprimer deux bulletins dans une page pour permettre au  bénéficiaire des revenus faibles d’économiser.
+    • Possibilité d’imprimer tout les bulletins en seul clic 
+    • Veille à ce que les données peuvent pas être chambouler lors de leurs impressions en cas de coupure de courant ou un problème technique des périphéries externes.
+    • Il y’a des écoles qui ne font le 1er trimestre ou obtient l’application dans ce cas tardivement et font deux évaluations seulement.  Dans ce cas mets uniquement les deux moyennes des 2 évaluations + moyenne générale ; rang générale + décision du conseil (Passe ou Redoule )
+     7. Statistiques &Graphiques
+Une fois PAAM, MOHEBS , notes_ (tri par classe) créés à partir de l’exportation module Disciplines ,je peux les utiliser pour mes travaux statistiques .
+ Crée en dessous de ceux -ci des boutons navigable.
+1. Synthèse classe ( disciplines bulletins) avec  (total (M/F), ont composé, ont obtenu la moyenne, taux de réussite) et (pdf, word, excel, npg, ppt, colorié téléchargeable)
+2. Synthèse école ( toutes les disciplines configurés , classe) avec (total (M/F), ont composé, ont obtenu la moyenne, taux de réussite) et (pdf, word, excel, npg, ppt, colorié téléchargeable) en se servant des fichiers excel notes_(tri par classe).
+(1. points forts ; 2points faibles, 3 ; Plan de remédiation) pour chaque classe, et l’école mets graphique, courbes,histogramme, pie charts, bar charts, selon votre choix, téléchargeable (pdf, word, ppt)
+3. Synthèse résultats PAAM
+école ( toutes les disciplines PAAM , classe) en se servant des notes du fichier excel PAAM  crée en haut
+(1. points forts ; 2points faibles, 3 ; Plan de remédiation) pour chaque classe, et l’école mets graphique, courbes,histogramme, pie charts, bar charts, selon votre choix, téléchargeable (pdf, word, ppt)
+4. Synthèse résultats MOHEBS
+école ( toutes les disciplines MOHEBS , classe) en se servant des notes du fichier excel  MOHEBS crée en haut 
+(1. points forts ; 2points faibles, 3 ; Plan de remédiation) pour chaque classe, et l’école mets graphique, courbes,histogramme, pie charts, bar charts, selon votre choix, téléchargeable (pdf, word, ppt)
+NB : Retiens PAAM (Mathématiques (Ressources et compétences)) et MOHEBS (Français (Ressources et compétences)) pour chaque classe et l’école. 
+5. Proposition de passage 
+    • trimestre, classe, écoles
+    • Prénoms ; Nom, Sexe, discplines bulletins, total, moyenne, rang
+    • tableau en format 3D, avec le titre en zone texte coloré stylé en gras centré, séparé du tableau environ 2 colonnes.
+    • Nb : la proposition de passage de contenir  Prénoms ; Nom, Sexe,  moyenne 1des 3 trimestres+ moyenne générale, rang  générale , décision du conseil *Passe en classe supérieur* sinon * Reprend la classe*. Cette mention est appliquable  avec le bulletin du 3eme trimestre
+    • Si la moyenne générale est >=4,5 ;décision du conseil *Passe en classe supérieur* sinon * Reprend la classe*.
+6. Rapport d’évaluation à générer automatiquement
+    • 1. Synthèse classe ; 2. Synthèse école ; 3. Synthèse résultats PAAM ; 4. Synthèse résultats MOHEBS ; 5. Proposition de passage 
+    • Graphiques , histogramme, courbes, modernes par classe, discipline et école téléchargeable pour des besoins de partage avec l’équipe pédagogique et la communauté) pdf, png, ppt.
+8. Gestion des matériels
+    • 3 boutons (Matériels didactiques, Matériels didactiques , Autres) par classe, école ( Intitulés, Quantités, Qualités (Bon état, Mauvais état, En maintenance, Autre))
+Mode hors ligne (PRIORITAIRE)
+    • Fonctionnement 100 % sans Internet
+    • Synchronisation optionnelle
+    • Partage possible entre écoles isolées entre collègues via clé , lien etc.
+Résultat attendu
+Un logiciel clé en main, intuitif, automatisé et pédagogique, adapté aux réalités du système éducatif sénégalais, nommé Tawfeex_ak_Taysiir.
+⚠️ Contrainte majeure :
+L’utilisateur final n’a aucune connaissance informatique → tout doit être simple, guidé et automatisé.
+Remarque : Après avoir créer une application de test, j’avais constaté une chose à corriger, si je partage l’application et je l’ouvre dans Replit, elle fonction mais je si déconnecte, le lien n’est plus fonctionnel.
+Pas de possibilité des modifier les identifiant, supprimer l’affichage des identifiants dans l’écran d’accueil. Je suis le seul à pouvoir fournir les identifiants.
+Fais en sorte que personne ne peut modifier le message d’accueil *Bienvenue dans Tawfeex_ak_Taysiir – Assistance : KHADIM BA (77 737 95 80)*  affiché en haut dans chaque module.
+Remplissage obligatoire des le premier utilisation de l’application sans cette personne ne pourra exploitation l’application (Prénoms, nom, tel (+221+9chiffres) , email (configure pour email), IA;IEF ;  Nom de l’école élémentaire) . Après cette étape il peut l’exploiter .
+Affichage obligatoire de ma  photo profit dans un endroit pas génant et quelque le bénéficiaire, il ne peut pas le modifier, le supprimer.

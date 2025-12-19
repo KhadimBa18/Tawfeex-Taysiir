@@ -134,8 +134,8 @@ export default function Evaluations() {
     if (!selectedClassId) return;
     const cls = classes.find(c => c.id === parseInt(selectedClassId));
     
-    // Export All Subjects
-    const data = students.map(s => {
+    // Create main file with all subjects
+    const allData = students.map(s => {
       const row: any = {
         "Matricule": s.matricule,
         "Prénom": s.firstName,
@@ -153,17 +153,37 @@ export default function Evaluations() {
       return row;
     });
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    
-    // Attempt Data Validation (Limited in SheetJS Free)
-    // We can add comments or specific formatting, but strict Data Validation 
-    // requires Pro version or complex XML manipulation.
-    // However, we can set cell type to 'n' (number).
-    // Let's rely on robust IMPORT validation.
-
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Notes");
+    
+    // Main file
+    const wsMain = XLSX.utils.json_to_sheet(allData);
+    XLSX.utils.book_append_sheet(wb, wsMain, `notes_${cls?.name}`);
+    
+    // PAAM (Math)
+    const paaMData = students.map(s => ({
+      "Matricule": s.matricule,
+      "Prénom": s.firstName,
+      "Nom": s.lastName,
+      "Mathématiques (Res)": getMarkValue(s.id!, 'res', 'maths'),
+      "Mathématiques (Comp)": getMarkValue(s.id!, 'comp', 'maths'),
+    }));
+    const wsPAAM = XLSX.utils.json_to_sheet(paaMData);
+    XLSX.utils.book_append_sheet(wb, wsPAAM, "PAAM");
+    
+    // MOHEBS (French)
+    const mohefsData = students.map(s => ({
+      "Matricule": s.matricule,
+      "Prénom": s.firstName,
+      "Nom": s.lastName,
+      "Français (Res)": getMarkValue(s.id!, 'res', 'francais'),
+      "Français (Comp)": getMarkValue(s.id!, 'comp', 'francais'),
+    }));
+    const wsMOHEBS = XLSX.utils.json_to_sheet(mohefsData);
+    XLSX.utils.book_append_sheet(wb, wsMOHEBS, "MOHEBS");
+    
     XLSX.writeFile(wb, `Notes_${cls?.name}_T${selectedTrimestre}.xlsx`);
+    
+    toast({ title: "Succès", description: "3 copies créées: notes_CI, PAAM, MOHEBS" });
   };
 
   const importGrades = (e: React.ChangeEvent<HTMLInputElement>) => {

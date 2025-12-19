@@ -11,7 +11,8 @@ import {
   BarChart3, 
   LogOut,
   Settings,
-  Menu
+  Menu,
+  BookOpen
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -22,8 +23,9 @@ const NAV_ITEMS = [
   { label: "Personnel", icon: Users, href: "/personnel" },
   { label: "Classes", icon: School, href: "/classes" },
   { label: "Élèves", icon: GraduationCap, href: "/students" },
+  { label: "Disciplines", icon: BookOpen, href: "/disciplines" },
   { label: "Évaluations", icon: FileText, href: "/evaluations" },
-  { label: "Bulletins", icon: FileText, href: "/bulletins" }, // Reusing icon for now
+  { label: "Bulletins", icon: FileText, href: "/bulletins" },
   { label: "Statistiques", icon: BarChart3, href: "/stats" },
 ];
 
