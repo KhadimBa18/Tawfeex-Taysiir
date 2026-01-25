@@ -46,6 +46,13 @@ export const DEFAULT_RESOURCES = {
 };
 
 // Default config - can be overridden per class later
+export interface SubjectConfig {
+  subjectId: string;
+  maxRes?: number;
+  maxComp?: number;
+  maxGlobal?: number;
+}
+
 export const DEFAULT_CONFIG: SubjectConfig[] = [
   { subjectId: "francais", maxRes: 280, maxComp: 280 },
   { subjectId: "maths", maxRes: 280, maxComp: 280 },

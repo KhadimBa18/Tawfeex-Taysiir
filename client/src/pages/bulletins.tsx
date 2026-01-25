@@ -252,7 +252,7 @@ export default function Bulletins() {
       head: [['Discipline', 'Note', 'Barème', 'Total', 'Appréciation']],
       body: tableBody,
       theme: 'grid',
-      headStyles: { fillColor: MENU_BLUE, textColor: 255, halign: 'center', fontStyle: 'bold' },
+      headStyles: { fillColor: MENU_BLUE as [number, number, number], textColor: 255, halign: 'center', fontStyle: 'bold' },
       styles: { fontSize: 10, cellPadding: 2, valign: 'middle' },
       columnStyles: { 0: { cellWidth: 70 } }, // Wider first column
       alternateRowStyles: { fillColor: [240, 248, 255] }
