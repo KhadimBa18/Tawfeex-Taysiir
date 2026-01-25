@@ -74,7 +74,7 @@ export default function Bulletins() {
         }
       });
       
-      const average = totalMax > 0 ? (totalScore / totalMax) * 20 : 0;
+      const average = totalMax > 0 ? (totalScore / totalMax) * 10 : 0;
       return { studentId: s.id, average };
     });
 
@@ -262,16 +262,16 @@ export default function Bulletins() {
     const finalY = (doc as any).lastAutoTable.finalY + 10;
     
     // Stats
-    const average = totalMax > 0 ? (totalScore / totalMax) * 20 : 0;
+    const average = totalMax > 0 ? (totalScore / totalMax) * 10 : 0;
     const { rank, total } = calculateStudentRank(student.id!);
     
     doc.setDrawColor(0);
     doc.setFillColor(255, 255, 255);
     doc.rect(130, finalY, 65, 25);
     doc.setFont("helvetica", "bold");
-    doc.text(`Moyenne: ${average.toFixed(2)} / 20`, 135, finalY + 7);
+    doc.text(`Moyenne: ${average.toFixed(2)} / 10`, 135, finalY + 7);
     doc.text(`Rang: ${rank} / ${total}`, 135, finalY + 14);
-    doc.text(`Décision: ${average >= 10 ? 'Admis' : 'Échoué'}`, 135, finalY + 21);
+    doc.text(`Décision: ${average >= 5 ? 'Admis' : 'Échoué'}`, 135, finalY + 21);
 
     // Signatures
     doc.setFontSize(10);

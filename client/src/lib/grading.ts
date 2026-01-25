@@ -66,7 +66,7 @@ export function getMark(marks: Mark[], studentId: number, baseSubjectId: string,
 }
 
 // Helper to normalize to /20 or /10 for display in bulletin
-export function normalize(value: number, max: number, target: number = 20) {
+export function normalize(value: number, max: number, target: number = 10) {
   if (!max) return 0;
   return (value / max) * target;
 }
