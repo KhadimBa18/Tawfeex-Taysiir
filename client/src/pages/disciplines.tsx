@@ -122,7 +122,7 @@ export default function Disciplines() {
                                   value={res}
                                   onChange={(e) => updateResource(subject.id, i, e.target.value)}
                                   placeholder={`Ressource ${i + 1}`}
-                                  size="sm"
+                                  className="h-8 text-sm"
                                 />
                               ))}
                             </div>
@@ -135,8 +135,8 @@ export default function Disciplines() {
                                   key={i}
                                   value={comp}
                                   onChange={(e) => updateCompetence(subject.id, i, e.target.value)}
-                                  placeholder={`Compétence ${i + 1}`}
-                                  size="sm"
+                                  placeholder={`Competence ${i + 1}`}
+                                  className="h-8 text-sm"
                                 />
                               ))}
                             </div>

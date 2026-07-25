@@ -57,7 +57,7 @@ export default function Bulletins() {
       let totalMax = 0;
       
       SUBJECTS.forEach(sub => {
-        const conf = configs.find(c => c.subjectId === sub.id) || {};
+        const conf: SubjectConfig = configs.find(c => c.subjectId === sub.id) || { subjectId: sub.id };
         
         if (sub.hasSub) {
           const resVal = getMarkValue(s.id!, sub.id, 'res');
@@ -203,7 +203,7 @@ export default function Bulletins() {
     let totalMax = 0;
     
     const tableBody = SUBJECTS.flatMap(sub => {
-      const conf = configs.find(c => c.subjectId === sub.id) || {};
+      const conf: SubjectConfig = configs.find(c => c.subjectId === sub.id) || { subjectId: sub.id };
       
       if (sub.hasSub) {
         // Resources

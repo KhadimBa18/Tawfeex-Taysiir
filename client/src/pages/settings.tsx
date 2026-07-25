@@ -2,12 +2,18 @@ import { useState } from "react";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Download, Upload, AlertCircle } from "lucide-react";
+import { Download, Upload, AlertCircle, Building2, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
+import { useSchool } from "@/hooks/use-school";
+import { useLocation } from "wouter";
 
 export default function Settings() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { school } = useSchool();
+  const [, setLocation] = useLocation();
   const [isRestoring, setIsRestoring] = useState(false);
 
   const handleBackup = async () => {
@@ -52,7 +58,7 @@ export default function Settings() {
       try {
         const json = JSON.parse(evt.target?.result as string);
         
-        await db.transaction('rw', db.users, db.classes, db.students, db.marks, db.schools, async () => {
+        await db.transaction('rw', [db.users, db.classes, db.students, db.marks, db.schools], async () => {
           await db.users.clear();
           await db.classes.clear();
           await db.students.clear();
@@ -82,6 +88,28 @@ export default function Settings() {
         <h1 className="text-3xl font-bold text-primary">Paramètres & Maintenance</h1>
         <p className="text-muted-foreground">Sauvegarde et restauration des données.</p>
       </div>
+
+      {user?.role === "admin" && (
+        <Card className="border-primary/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-primary" />
+              Configuration de l'établissement
+            </CardTitle>
+            <CardDescription>
+              {school?.configured
+                ? `École configurée : ${school.name} (${school.code || "sans code"}). Ces informations apparaissent sur tous les documents.`
+                : "L'école n'est pas encore configurée."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => setLocation("/school-setup")} className="w-full gap-2" variant="outline">
+              <Lock className="w-4 h-4" />
+              {school?.configured ? "Modifier les informations de l'école" : "Configurer l'école"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>

@@ -85,7 +85,7 @@ export default function Evaluations() {
     
     // VALIDATION: Check max score
     const currentSub = SUBJECTS.find(s => s.id === selectedSubjectId);
-    const conf = configs.find(c => c.subjectId === selectedSubjectId) || {};
+    const conf: SubjectConfig = configs.find(c => c.subjectId === selectedSubjectId) || { subjectId: selectedSubjectId };
     let max = 20; // fallback
     if (currentSub?.hasSub) {
         max = type === 'res' ? (conf.maxRes || 40) : (conf.maxComp || 60);
@@ -205,7 +205,7 @@ export default function Evaluations() {
             const student = students.find(s => s.matricule === row.Matricule);
             if (student) {
                 for(const sub of SUBJECTS) {
-                    const conf = configs.find(c => c.subjectId === sub.id) || {};
+                    const conf: SubjectConfig = configs.find(c => c.subjectId === sub.id) || { subjectId: sub.id };
 
                     if (sub.hasSub) {
                         const res = row[`${sub.label} (Res)`];
@@ -275,7 +275,7 @@ export default function Evaluations() {
             });
             loadMarks();
             if (errorCount > 0) {
-                toast({ title: "Import partiel", description: `${newMarks.length} notes importées. ${errorCount} erreurs (valeur invalide ou > barème).`, variant: "warning" });
+                toast({ title: "Import partiel", description: `${newMarks.length} notes importées. ${errorCount} erreurs (valeur invalide ou > barème).`, variant: "default" });
             } else {
                 toast({ title: "Import terminé", description: `Toutes les notes ont été importées.` });
             }

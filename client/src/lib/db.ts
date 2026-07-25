@@ -5,9 +5,13 @@ export interface School {
   name: string;
   ia: string;
   ief: string;
+  commune: string;
+  zone: string;
+  code: string; // Code école (identifiant officiel)
   email: string;
   phone: string;
   logo?: string; // base64 or blob url
+  configured?: boolean; // true une fois paramétrée par l'admin
 }
 
 export interface User {

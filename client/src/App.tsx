@@ -15,10 +15,12 @@ import Bulletins from "@/pages/bulletins";
 import Stats from "@/pages/stats";
 import Personnel from "@/pages/personnel";
 import Settings from "@/pages/settings";
+import SchoolSetup from "@/pages/school-setup";
 import Layout from "@/components/layout";
 import { Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { useSchool } from "@/hooks/use-school";
 
 // Placeholder pages
 const Placeholder = ({ title }: { title: string }) => (
@@ -57,6 +59,34 @@ function InstallPrompt() {
 
 function ProtectedRoute({ component: Component, ...rest }: any) {
   const { user, isLoading } = useAuth();
+  const { isConfigured, isLoading: schoolLoading } = useSchool();
+
+  if (isLoading || schoolLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/login" />;
+  }
+
+  if (!isConfigured) {
+    return <Redirect to="/school-setup" />;
+  }
+
+  return (
+    <Layout>
+      <Component {...rest} />
+      <InstallPrompt />
+    </Layout>
+  );
+}
+
+function SchoolSetupGate() {
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -70,12 +100,7 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
     return <Redirect to="/login" />;
   }
 
-  return (
-    <Layout>
-      <Component {...rest} />
-      <InstallPrompt />
-    </Layout>
-  );
+  return <SchoolSetup />;
 }
 
 function Router() {
@@ -117,6 +142,10 @@ function Router() {
 
       <Route path="/settings">
         {() => <ProtectedRoute component={Settings} />}
+      </Route>
+
+      <Route path="/school-setup">
+        {() => <SchoolSetupGate />}
       </Route>
 
       <Route component={NotFound} />

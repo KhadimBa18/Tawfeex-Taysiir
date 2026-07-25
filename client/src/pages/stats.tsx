@@ -47,7 +47,7 @@ export default function Stats() {
     // Class Performance Stats
     const relevantClasses = selectedClassId === "all" 
         ? allClasses 
-        : allClasses.filter(c => c.id.toString() === selectedClassId);
+        : allClasses.filter(c => c.id !== undefined && c.id.toString() === selectedClassId);
 
     const cData = await Promise.all(relevantClasses.map(async c => {
       const count = await db.students.where('classId').equals(c.id!).count();

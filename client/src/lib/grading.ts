@@ -1,4 +1,4 @@
-import { Mark, SubjectConfig } from "./db";
+import { Mark } from "./db";
 
 // Compartiments pour Excel export
 export const COMPARTMENTS = {
